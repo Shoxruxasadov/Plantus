@@ -249,11 +249,11 @@ export default function Navigation() {
         <Stack.Screen name="Repotting" component={RepottingScreen} />
 
         {/* Subscription */}
-        <Stack.Screen
+        {/* <Stack.Screen
           name="Pro"
           component={ProScreen}
           // options={{ animation: 'slide_from_bottom' }}
-        />
+        /> */}
 
         {/* Tools */}
         <Stack.Screen name="LightMeter" component={LightMeterScreen} />

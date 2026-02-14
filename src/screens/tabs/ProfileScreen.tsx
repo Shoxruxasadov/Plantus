@@ -78,7 +78,7 @@ export default function ProfileScreen() {
   };
 
   const handlePro = () => {
-    navigation.navigate('Pro' as never);
+    // navigation.navigate('Pro' as never);
   };
 
   const handleManageSubscription = async () => {

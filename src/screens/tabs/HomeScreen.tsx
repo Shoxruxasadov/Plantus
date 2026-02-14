@@ -121,7 +121,7 @@ export default function HomeScreen() {
   };
 
   const handlePro = () => {
-    navigation.navigate('Pro' as never);
+    // navigation.navigate('Pro' as never);
   };
 
   const getArticleTitle = (article: Article) => {

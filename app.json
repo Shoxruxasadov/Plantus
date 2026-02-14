@@ -12,7 +12,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#1B5E20"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.webnum.plantus",
@@ -32,7 +34,8 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION"
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -52,6 +55,12 @@
           "color": "#1B5E20"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "fd1a511e-1434-477c-9e46-82c38fe95cda"
+      }
+    },
+    "owner": "webnum123"
   }
 }
