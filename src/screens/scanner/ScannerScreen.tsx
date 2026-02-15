@@ -63,6 +63,7 @@ export default function ScannerScreen() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [cameraType, setCameraType] = useState<CameraType>('back');
   const [flashMode, setFlashMode] = useState<FlashMode>('off');
+  const [enableTorch, setEnableTorch] = useState(false);
   const [mode, setMode] = useState<ScannerMode>(route.params?.initialMode || 'identify');
   const [loading, setLoading] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -255,11 +256,15 @@ export default function ScannerScreen() {
   };
 
   const toggleCameraType = () => {
-    setCameraType((current) => (current === 'back' ? 'front' : 'back'));
+    setCameraType((current) => {
+      const next = current === 'back' ? 'front' : 'back';
+      if (next === 'front') setEnableTorch(false);
+      return next;
+    });
   };
 
   const toggleFlash = () => {
-    setFlashMode((current) => (current === 'off' ? 'on' : 'off'));
+    setEnableTorch((on) => !on);
   };
 
   const handleInfo = () => {
@@ -325,6 +330,7 @@ export default function ScannerScreen() {
             style={StyleSheet.absoluteFill}
             facing={cameraType}
             flash={flashMode}
+            enableTorch={enableTorch}
           />
           {/* Scan frame: 1:1 kvadrat, markazda */}
           {!scanError && (
@@ -377,11 +383,11 @@ export default function ScannerScreen() {
             </TouchableOpacity>
             <View style={styles.topRightControls}>
               <TouchableOpacity style={styles.controlButton} onPress={toggleFlash}>
-                {flashMode === 'on' ? (
-                <Lightning size={22} color={COLORS.textLight} />
-              ) : (
-                <LightningSlash size={22} color={COLORS.textLight} />
-              )}
+                {enableTorch ? (
+                  <Lightning size={22} color={COLORS.textLight} />
+                ) : (
+                  <LightningSlash size={22} color={COLORS.textLight} />
+                )}
               </TouchableOpacity>
               <TouchableOpacity style={styles.controlButton} onPress={toggleCameraType}>
                 <CameraRotate size={22} color={COLORS.textLight} />
@@ -431,7 +437,7 @@ export default function ScannerScreen() {
 
           <View style={styles.topRightControls}>
             <TouchableOpacity style={styles.controlButton} onPress={toggleFlash}>
-              {flashMode === 'on' ? (
+              {enableTorch ? (
                 <Lightning size={22} color={COLORS.textLight} />
               ) : (
                 <LightningSlash size={22} color={COLORS.textLight} />

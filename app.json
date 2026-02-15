@@ -26,10 +26,7 @@
       }
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/app_launcher_icon.png",
-        "backgroundColor": "#1B5E20"
-      },
+      "icon": "./assets/images/app_launcher_icon.png",
       "package": "com.webnum.plantus",
       "permissions": [
         "android.permission.CAMERA",

@@ -776,7 +776,7 @@ export default function MyGardenScreen() {
           return (
             <View key={plant.id} style={[styles.reminderCard, { backgroundColor: theme.card }]}>
               <TouchableOpacity
-                style={[styles.reminderHeader, { borderBottomWidth: 1, borderBottomColor: theme.borderLight }]}
+                style={[styles.reminderHeader]}
                 activeOpacity={0.7}
                 onPress={() => {
                   const found = plants.find((p) => String(p.id) === plant.id);
@@ -790,10 +790,10 @@ export default function MyGardenScreen() {
                 </View>
                 <CaretRight size={18} color={theme.textTertiary} />
               </TouchableOpacity>
-              {plant.tasks.map((task) => (
+              {plant.tasks.map((task, index) => (
                 <TouchableOpacity
                   key={task.key}
-                  style={[styles.reminderTaskRow, { borderTopColor: theme.borderLight }]}
+                  style={[styles.reminderTaskRow, { borderTopWidth: index===0?0:1, borderTopColor: theme.accent3 }]}
                   onPress={() => handleToggleReminder(plantIdx, task.key, task.status)}
                   activeOpacity={0.7}
                 >
@@ -1382,12 +1382,14 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginHorizontal: SPACING.lg,
     marginBottom: SPACING.md,
-    padding: 14,
+    paddingTop: 14,
+    paddingHorizontal: 14,
+    paddingBottom: 4,
   },
   reminderHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 4,
   },
   reminderImg: {
     width: 60,
@@ -1412,9 +1414,7 @@ const styles = StyleSheet.create({
   reminderTaskRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: SPACING.md + 2,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    paddingVertical: SPACING.sm + 2,
   },
   reminderTaskIcon: {
     width: 40,

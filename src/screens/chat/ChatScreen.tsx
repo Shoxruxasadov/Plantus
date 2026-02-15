@@ -286,7 +286,7 @@ export default function ChatScreen() {
             <ActivityIndicator size="large" color={theme.textSecondary} />
           </View>
         ) : (
-          <View style={styles.chatBody}>
+          <View style={[styles.chatBody, { backgroundColor: theme.backgroundSecondary }]}>
             <FlatList
               ref={flatListRef}
               data={messages}
@@ -356,24 +356,26 @@ export default function ChatScreen() {
           </View>
         )}
 
-        {/* Selected image preview */}
-        {selectedImage && (
-          <View style={styles.previewWrap}>
-            <Image source={{ uri: selectedImage }} style={styles.previewImg} />
-            <TouchableOpacity style={[styles.previewRemove, { backgroundColor: theme.card }]} onPress={() => setSelectedImage(null)}>
-              <XCircle size={22} color={COLORS.error} weight="fill" />
-            </TouchableOpacity>
-          </View>
-        )}
+        {/* Input bar wrapper (relative for absolute preview) */}
+        <View style={styles.inputBarWrapper}>
+          {/* Selected image preview – position absolute, layoutda joy olmaydi */}
+          {selectedImage && (
+            <View style={styles.previewWrap}>
+              <Image source={{ uri: selectedImage }} style={styles.previewImg} />
+              <TouchableOpacity style={[styles.previewRemove, { backgroundColor: theme.card }]} onPress={() => setSelectedImage(null)}>
+                <XCircle size={22} color={COLORS.error} weight="fill" />
+              </TouchableOpacity>
+            </View>
+          )}
 
-        {/* Input bar */}
-        <View style={[styles.inputBar, { paddingBottom: insets.bottom + 8, backgroundColor: theme.background, borderTopColor: theme.borderLight }]}>
+          {/* Input bar */}
+          <View style={[styles.inputBar, { paddingBottom: insets.bottom + 8, backgroundColor: theme.background, borderTopColor: theme.borderLight }]}>
           <TouchableOpacity style={styles.cameraBtn} onPress={handlePickImage} activeOpacity={0.8}>
             <Camera size={20} color="#fff" weight="fill" />
           </TouchableOpacity>
           <View style={[styles.inputWrap, { backgroundColor: theme.backgroundSecondary }]}>
             <TextInput
-              style={[styles.input, { backgroundColor: theme.backgroundSecondary, color: theme.text }]}
+              style={[styles.input, { backgroundColor: 'transparent', color: theme.text }]}
               placeholder="Message"
               placeholderTextColor={theme.textSecondary}
               value={inputText}
@@ -397,6 +399,7 @@ export default function ChatScreen() {
               <PaperPlaneRight size={18} color="#fff" weight="fill" />
             )}
           </TouchableOpacity>
+        </View>
         </View>
       </KeyboardAvoidingView>
     </View>
@@ -431,7 +434,7 @@ const styles = StyleSheet.create({
   // Body
   kbView: { flex: 1 },
   loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  chatBody: { flex: 1 },
+  chatBody: { flex: 1, },
   messageList: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md, paddingBottom: 8 },
   messageListEmpty: { flex: 1, justifyContent: 'flex-end' },
 
@@ -496,8 +499,16 @@ const styles = StyleSheet.create({
   },
   suggestionText: { fontSize: 13, color: COLORS.text },
 
-  // Image preview
-  previewWrap: { marginHorizontal: SPACING.lg, marginBottom: 6, alignSelf: 'flex-start' },
+  // Input bar wrapper (preview absolute unga nisbatan)
+  inputBarWrapper: { position: 'relative' },
+
+  // Image preview – absolute, input bar ustida, layoutda joy egallamaydi
+  previewWrap: {
+    position: 'absolute',
+    left: 12,
+    bottom: 100,
+    zIndex: 10,
+  },
   previewImg: { width: 72, height: 72, borderRadius: 12 },
   previewRemove: { position: 'absolute', top: -6, right: -6, backgroundColor: '#fff', borderRadius: 12 },
 
@@ -530,6 +541,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: COLORS.text,
     maxHeight: 100,
+    height: 40,
+    backgroundColor: "transparent",
   },
   sendBtn: {
     width: 40, height: 40, borderRadius: 20,
