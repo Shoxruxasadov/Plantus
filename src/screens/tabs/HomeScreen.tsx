@@ -43,6 +43,7 @@ export default function HomeScreen() {
     isLoggedIn,
     isPro,
     darkMode,
+    assistantChatId,
   } = useAppStore();
 
   const [articles, setArticles] = useState<Article[]>([]);
@@ -105,7 +106,7 @@ export default function HomeScreen() {
       navigation.navigate('Started');
       return;
     }
-    navigation.navigate('Chat', {});
+    navigation.navigate('Chat', assistantChatId ? { chatId: assistantChatId } : {});
   };
 
   const handleReminders = () => {

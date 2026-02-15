@@ -16,7 +16,7 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { RootStackParamList } from "../../types";
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from "../../utils/theme";
 import { useTheme } from "../../hooks";
-import { supabase, usersTable, groupsTable } from "../../services/supabase";
+import { supabase, usersTable, groupsTable, getAIChat } from "../../services/supabase";
 import { setupGardenNotificationsForUser } from "../../services/notifications";
 import { useAppStore } from "../../store/appStore";
 import { showAlert } from "../../utils/helpers";
@@ -42,7 +42,7 @@ export default function StartedScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const { setUser, setSession, setUserCollection } = useAppStore();
+  const { setUser, setSession, setUserCollection, setAssistantChatId, setChatCreated } = useAppStore();
   const [loading, setLoading] = useState<"apple" | "google" | "email" | null>(
     null,
   );
@@ -160,13 +160,25 @@ export default function StartedScreen() {
         deletemode: false,
       });
 
-      setUserCollection({ id: userId, email, name });
+      await setUserCollection({ id: userId, email, name });
+      getAIChat(userId).then(({ data: chat }) => {
+        if (chat) {
+          setAssistantChatId(chat.id);
+          setChatCreated(true);
+        }
+      }).catch(() => {});
     } else {
-      setUserCollection({
+      await setUserCollection({
         id: existingUser.id,
         email: existingUser.email,
         name: existingUser.name,
       });
+      getAIChat(existingUser.id).then(({ data: chat }) => {
+        if (chat) {
+          setAssistantChatId(chat.id);
+          setChatCreated(true);
+        }
+      }).catch(() => {});
     }
   };
 

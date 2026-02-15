@@ -27,7 +27,7 @@ export default function ChatProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const { userCollection, setChatCreated } = useAppStore();
+  const { userCollection, setChatCreated, setAssistantChatId } = useAppStore();
 
   const handleClearChat = () => {
     Alert.alert(
@@ -65,7 +65,8 @@ export default function ChatProfileScreen() {
           onPress: async () => {
             try {
               await deleteAIChat(userCollection.id);
-              setChatCreated(false);
+              await setAssistantChatId(null);
+              await setChatCreated(false);
               navigation.goBack();
               navigation.goBack();
             } catch (error) {
@@ -79,7 +80,7 @@ export default function ChatProfileScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.backgroundSecondary }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -95,7 +96,7 @@ export default function ChatProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Profile Card */}
-        <View style={[styles.profileCard, { backgroundColor: theme.backgroundSecondary }]}>
+        <View style={[styles.profileCard, { backgroundColor: theme.card }]}>
           <Image source={OLIVER_IMG} style={[styles.avatar, { backgroundColor: theme.backgroundTertiary }]} resizeMode="cover" />
           <Text style={[styles.name, { color: theme.text }]}>Mr. Oliver</Text>
           <Text style={[styles.role, { color: theme.primary }]}>AI Botanist</Text>

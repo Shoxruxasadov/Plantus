@@ -19,7 +19,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 
 import { RootStackParamList } from '../../types';
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
-import { signInWithEmail, getUserData, supabase, usersTable, groupsTable } from '../../services/supabase';
+import { signInWithEmail, getUserData, getAIChat, supabase, usersTable, groupsTable } from '../../services/supabase';
 import { setupGardenNotificationsForUser } from '../../services/notifications';
 import { useAppStore } from '../../store/appStore';
 import { isValidEmail, showAlert } from '../../utils/helpers';
@@ -35,7 +35,7 @@ try {
 export default function SignInScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
-  const { setUser, setSession, setUserCollection } = useAppStore();
+  const { setUser, setSession, setUserCollection, setAssistantChatId, setChatCreated } = useAppStore();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -80,11 +80,17 @@ export default function SignInScreen() {
 
         const { data: userData } = await getUserData(data.user.id);
         if (userData) {
-          setUserCollection({
+          await setUserCollection({
             id: userData.id,
             email: userData.email,
             name: userData.name,
           });
+          getAIChat(userData.id).then(({ data: chat }) => {
+            if (chat) {
+              setAssistantChatId(chat.id);
+              setChatCreated(true);
+            }
+          }).catch(() => {});
         }
 
         setupGardenNotificationsForUser(data.user.id).catch(() => {});
@@ -117,13 +123,25 @@ export default function SignInScreen() {
         created_at: new Date().toISOString(),
         deletemode: false,
       });
-      setUserCollection({ id: userId, email: userEmail, name });
+      await setUserCollection({ id: userId, email: userEmail, name });
+      getAIChat(userId).then(({ data: chat }) => {
+        if (chat) {
+          setAssistantChatId(chat.id);
+          setChatCreated(true);
+        }
+      }).catch(() => {});
     } else {
-      setUserCollection({
+      await setUserCollection({
         id: existingUser.id,
         email: existingUser.email,
         name: existingUser.name,
       });
+      getAIChat(existingUser.id).then(({ data: chat }) => {
+        if (chat) {
+          setAssistantChatId(chat.id);
+          setChatCreated(true);
+        }
+      }).catch(() => {});
     }
   };
 

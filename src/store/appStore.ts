@@ -14,6 +14,7 @@ import {
 const STORAGE_KEYS = {
   IS_FIRST_STEP: '@plantus_is_first_step',
   CHAT_CREATED: '@plantus_chat_created',
+  ASSISTANT_CHAT_ID: '@plantus_assistant_chat_id',
   USER_COLLECTION: '@plantus_user_collection',
   LOCATION: '@plantus_location',
   TEMPERATURE: '@plantus_temperature',
@@ -61,6 +62,7 @@ interface AppState {
   // App state
   isFirstStep: boolean;
   chatCreated: boolean;
+  assistantChatId: string | null;
   chatScrollToEnd: boolean;
 
   // Location & Weather
@@ -91,6 +93,7 @@ interface AppState {
   updateUserCollection: (updates: Partial<User>) => void;
   setIsFirstStep: (value: boolean) => void;
   setChatCreated: (value: boolean) => void;
+  setAssistantChatId: (value: string | null) => void;
   setChatScrollToEnd: (value: boolean) => void;
   setLocation: (location: Location) => void;
   setWeather: (weather: Weather) => void;
@@ -120,6 +123,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   userCollection: { id: '', name: '', email: '' },
   isFirstStep: true,
   chatCreated: false,
+  assistantChatId: null,
   chatScrollToEnd: false,
   location: defaultLocation,
   weather: defaultWeather,
@@ -167,6 +171,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   setChatCreated: async (value) => {
     set({ chatCreated: value });
     await AsyncStorage.setItem(STORAGE_KEYS.CHAT_CREATED, JSON.stringify(value));
+  },
+
+  setAssistantChatId: async (value) => {
+    set({ assistantChatId: value });
+    const toStore = value != null && value !== '' ? String(value) : '';
+    await AsyncStorage.setItem(STORAGE_KEYS.ASSISTANT_CHAT_ID, toStore);
   },
 
   setChatScrollToEnd: (value) => set({ chatScrollToEnd: value }),
@@ -269,6 +279,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const [
         isFirstStep,
         chatCreated,
+        assistantChatId,
         userCollection,
         location,
         temperature,
@@ -283,6 +294,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       ] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.IS_FIRST_STEP),
         AsyncStorage.getItem(STORAGE_KEYS.CHAT_CREATED),
+        AsyncStorage.getItem(STORAGE_KEYS.ASSISTANT_CHAT_ID),
         AsyncStorage.getItem(STORAGE_KEYS.USER_COLLECTION),
         AsyncStorage.getItem(STORAGE_KEYS.LOCATION),
         AsyncStorage.getItem(STORAGE_KEYS.TEMPERATURE),
@@ -299,6 +311,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({
         isFirstStep: isFirstStep ? JSON.parse(isFirstStep) : true,
         chatCreated: chatCreated ? JSON.parse(chatCreated) : false,
+        assistantChatId: assistantChatId && assistantChatId.length > 0 ? assistantChatId : null,
         userCollection: userCollection
           ? JSON.parse(userCollection)
           : { id: '', name: '', email: '' },
@@ -332,12 +345,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       isLoggedIn: false,
       userCollection: { id: '', name: '', email: '' },
       chatCreated: false,
+      assistantChatId: null,
       isPro: false,
     });
 
-    await AsyncStorage.multiRemove([
-      STORAGE_KEYS.USER_COLLECTION,
-      STORAGE_KEYS.CHAT_CREATED,
+    await Promise.all([
+      AsyncStorage.removeItem(STORAGE_KEYS.USER_COLLECTION),
+      AsyncStorage.removeItem(STORAGE_KEYS.CHAT_CREATED),
+      AsyncStorage.removeItem(STORAGE_KEYS.ASSISTANT_CHAT_ID),
     ]);
   },
 }));

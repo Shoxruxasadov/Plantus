@@ -23,7 +23,7 @@ import { RootStackParamList } from '../../types';
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
 import { useTheme } from '../../hooks';
 import { useAppStore } from '../../store/appStore';
-import { getAIChat, updateAIChat } from '../../services/supabase';
+import { getAIChat, updateAIChat, createAIChat } from '../../services/supabase';
 import { sendChatMessage } from '../../services/api';
 import { generateId } from '../../utils/helpers';
 
@@ -74,36 +74,59 @@ export default function ChatScreen() {
   const route = useRoute<RouteProps>();
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const { userCollection, darkMode } = useAppStore();
+  const { userCollection, darkMode, assistantChatId, setAssistantChatId, setChatCreated } = useAppStore();
   const flatListRef = useRef<FlatList>(null);
 
-  const { chatId } = route.params || {};
+  const { chatId: routeChatId } = route.params || {};
+  const effectiveChatId = routeChatId ?? assistantChatId;
   const [messages, setMessages] = useState<SupaMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // ---- Load chat ----
+  // ---- Load chat (bitta chat: route yoki store dan id) ----
   useEffect(() => {
     loadChat();
-  }, [chatId]);
+  }, [routeChatId, assistantChatId]);
 
-  // Reload on focus (e.g. after clear chat from profile)
   useFocusEffect(
     useCallback(() => {
-      if (chatId) loadChat();
-    }, [chatId]),
+      if (effectiveChatId) loadChat();
+    }, [effectiveChatId]),
   );
 
   const loadChat = async () => {
-    if (!chatId) { setLoading(false); return; }
+    if (!userCollection?.id) {
+      setLoading(false);
+      return;
+    }
     try {
       const { data } = await getAIChat(userCollection.id);
-      if (data?.messages && Array.isArray(data.messages)) {
-        setMessages(data.messages as SupaMessage[]);
+      if (data) {
+        await setAssistantChatId(data.id);
+        await setChatCreated(true);
+        if (data.messages && Array.isArray(data.messages)) {
+          setMessages(data.messages as SupaMessage[]);
+        } else {
+          const greeting: SupaMessage = {
+            message: "Hello! I'm Herbely Ai assistant. How can I help you today? I'm ready to help you!",
+            whom: 'ai',
+            created: new Date().toISOString(),
+            photo: '',
+            hasPhoto: false,
+          };
+          setMessages([greeting]);
+          await updateAIChat(data.id, [greeting]);
+        }
       } else {
-        // Empty chat — seed with Oliver greeting
+        const { data: newChat, error } = await createAIChat(userCollection.id);
+        if (error || !newChat) {
+          setLoading(false);
+          return;
+        }
+        await setAssistantChatId(newChat.id);
+        await setChatCreated(true);
         const greeting: SupaMessage = {
           message: "Hello! I'm Herbely Ai assistant. How can I help you today? I'm ready to help you!",
           whom: 'ai',
@@ -112,9 +135,7 @@ export default function ChatScreen() {
           hasPhoto: false,
         };
         setMessages([greeting]);
-        if (chatId) {
-          await updateAIChat(chatId, [greeting]);
-        }
+        await updateAIChat(newChat.id, [greeting]);
       }
     } catch (error) {
       console.error('Load chat error:', error);
@@ -172,8 +193,8 @@ export default function ChatScreen() {
         };
         const updatedMessages = [...newMessages, aiMsg];
         setMessages(updatedMessages);
-        if (chatId) {
-          await updateAIChat(chatId, updatedMessages);
+        if (effectiveChatId) {
+          await updateAIChat(effectiveChatId, updatedMessages);
         }
       } else {
         // Error fallback
@@ -186,8 +207,8 @@ export default function ChatScreen() {
         };
         const updatedMessages = [...newMessages, errMsg];
         setMessages(updatedMessages);
-        if (chatId) {
-          await updateAIChat(chatId, updatedMessages);
+        if (effectiveChatId) {
+          await updateAIChat(effectiveChatId, updatedMessages);
         }
       }
     } catch (error) {
@@ -326,7 +347,7 @@ export default function ChatScreen() {
 
         {/* Suggestion chips */}
         {!loading && userMessageCount === 0 && !sending && (
-          <View style={styles.suggestionsWrap}>
+          <View style={[styles.suggestionsWrap, {backgroundColor: theme.backgroundSecondary}]}>
             {INITIAL_SUGGESTIONS.map((s, i) => (
               <TouchableOpacity
                 key={i}
@@ -342,7 +363,7 @@ export default function ChatScreen() {
 
         {/* Context suggestions after first AI response */}
         {!loading && userMessageCount >= 1 && messages.length >= 2 && !sending && messages[messages.length - 1]?.whom === 'ai' && userMessageCount <= 2 && (
-          <View style={styles.suggestionsWrap}>
+          <View style={[styles.suggestionsWrap, {backgroundColor: theme.backgroundSecondary}]}>
             {CONTEXT_SUGGESTIONS.map((s, i) => (
               <TouchableOpacity
                 key={i}

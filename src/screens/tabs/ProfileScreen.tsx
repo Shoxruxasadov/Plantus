@@ -330,6 +330,7 @@ export default function ProfileScreen() {
 
         {/* Version */}
         <Text style={[styles.version, { color: theme.textTertiary }]}>Plantus - App Version v1.0.0</Text>
+        <View style={{ height: 95 }}></View>
       </ScrollView>
 
     </View>

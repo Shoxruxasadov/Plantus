@@ -2,7 +2,8 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, TouchableOpacity, StyleSheet, Platform, type GestureResponderEvent } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Dimensions, Platform, type GestureResponderEvent } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { House, Camera, Sparkle, User, PlantIcon } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -68,6 +69,52 @@ import TermsUseScreen from '../screens/legal/TermsUseScreen';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 
+const { width: SW } = Dimensions.get('window');
+const TAB_BAR_BASE = 60;
+
+// Tab bar background: berilgan SVG (markaziy tepa egri, pasti to'g'ri)
+const TAB_BAR_SVG_PATH =
+  'M402 127H0V18H161.742C166.74 18 171.207 15.1819 174.606 11.5186C181.181 4.43363 190.572 0 201 0C211.428 0 220.819 4.43363 227.394 11.5186C230.793 15.1819 235.26 18 240.258 18H402V127Z';
+
+const TabBarBackground = ({ backgroundColor }: { backgroundColor: string }) => {
+  const insets = useSafeAreaInsets();
+  const H = 111;
+
+  return (
+    <View style={[tabBarBgStyles.wrap, { height: H }]}>
+      <Svg
+        width={SW}
+        height={H}
+        viewBox="0 0 402 127"
+        preserveAspectRatio="none"
+        style={tabBarBgStyles.svg}
+      >
+        <Path d={TAB_BAR_SVG_PATH} fill={backgroundColor} />
+      </Svg>
+    </View>
+  );
+};
+
+const tabBarBgStyles = StyleSheet.create({
+  wrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  svg: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+});
+
 // Custom Tab Bar Button for Scanner
 const ScannerTabButton = ({ onPress }: { onPress?: (e: GestureResponderEvent) => void }) => (
   <TouchableOpacity
@@ -86,19 +133,36 @@ const TabNavigator = () => {
   const insets = useSafeAreaInsets();
   const darkMode = useAppStore((s) => s.darkMode);
   const userCollection = useAppStore((s) => s.userCollection);
+  const assistantChatId = useAppStore((s) => s.assistantChatId);
+  const chatCreated = useAppStore((s) => s.chatCreated);
+  const setAssistantChatId = useAppStore((s) => s.setAssistantChatId);
+  const setChatCreated = useAppStore((s) => s.setChatCreated);
   const theme = darkMode ? DARK_COLORS : COLORS;
 
   const handleAssistantTabPress = (e: any, navigation: any) => {
     e.preventDefault();
+    if (!userCollection?.id) {
+      navigation.navigate('AssistantTab');
+      return;
+    }
+    // Persisted chat id bo‘lsa darhol Chat ga (lag yo‘q)
+    if (chatCreated && assistantChatId) {
+      navigation.navigate('Chat', { chatId: assistantChatId });
+      return;
+    }
     (async () => {
-      if (!userCollection?.id) {
-        navigation.navigate('AssistantTab');
-        return;
-      }
-      const { data } = await getAIChat(userCollection.id);
-      if (data) {
-        navigation.navigate('Chat', { chatId: data.id });
-      } else {
+      try {
+        const { data } = await getAIChat(userCollection.id);
+        if (data) {
+          try {
+            await setAssistantChatId(data.id);
+            await setChatCreated(true);
+          } catch (_) {}
+          navigation.navigate('Chat', { chatId: data.id });
+        } else {
+          navigation.navigate('AssistantTab');
+        }
+      } catch (_) {
         navigation.navigate('AssistantTab');
       }
     })();
@@ -112,19 +176,20 @@ const TabNavigator = () => {
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: theme.textSecondary,
         tabBarStyle: {
-          backgroundColor: theme.background,
-          borderTopWidth: 1,
-          borderTopColor: theme.border,
-          height: 60 + insets.bottom,
-          paddingTop: 8,
-          paddingBottom: insets.bottom + 8,
+          backgroundColor: 'transparent',
+          borderTopWidth: 0,
+          elevation: 1,
+          height: 111,
+          paddingTop: 24,
+          paddingBottom: insets.bottom,
+          position: 'absolute',
         },
+        tabBarBackground: () => <TabBarBackground backgroundColor={theme.background} />,
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '500',
+          fontWeight: '600',
         },
         tabBarIcon: ({ focused, color }) => {
-          const weight = focused ? 'fill' : 'regular';
           switch (route.name) {
             case 'HomeTab':
               return <House size={24} color={color} weight="fill" />;
@@ -220,11 +285,20 @@ export default function Navigation() {
         <Stack.Screen name="Assistant" component={AssistantScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
 
-        {/* Scanner */}
+        {/* Scanner: native back (elastic), header to‘liq transparent, flash/rotate sahifada liquid glass */}
         <Stack.Screen
           name="Scanner"
           component={ScannerScreen}
-          // options={{ animation: 'slide_from_bottom' }}
+          options={{
+            headerShown: true,
+            headerTransparent: true,
+            headerTitle: '',
+            headerShadowVisible: false,
+            headerBackTitleVisible: false,
+            headerBackground: () => (
+              <View style={{ flex: 1, backgroundColor: 'transparent' }} />
+            ),
+          }}
         />
         <Stack.Screen name="InfoScanner" component={InfoScannerScreen} />
 
@@ -272,7 +346,7 @@ export default function Navigation() {
 
 const styles = StyleSheet.create({
   scannerButton: {
-    top: -20,
+    top: -13,
     justifyContent: 'center',
     alignItems: 'center',
   },

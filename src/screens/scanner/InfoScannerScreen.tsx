@@ -93,7 +93,7 @@ export default function InfoScannerScreen() {
     const IconComponent = tip.icon;
     return (
       <View key={index} style={styles.tipItem}>
-        <View style={[styles.tipIcon, { backgroundColor: theme.background }]}>
+        <View style={[styles.tipIcon, { backgroundColor: theme.backgroundSecondary}]}>
           <IconComponent size={22} color={COLORS.primary} />
         </View>
         <View style={styles.tipContent}>
@@ -105,7 +105,7 @@ export default function InfoScannerScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top }]}>
+    <View style={[styles.container, { backgroundColor: theme.backgroundSecondary, paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -136,7 +136,7 @@ export default function InfoScannerScreen() {
               </Text>
             </View>
           </View>
-          <View style={[styles.tipsContainer, { backgroundColor: theme.backgroundSecondary }]}>
+          <View style={[styles.tipsContainer, { backgroundColor: theme.card }]}>
             {identifyTips.map((tip, index) => renderTip(tip, index))}
           </View>
         </View>
@@ -154,7 +154,7 @@ export default function InfoScannerScreen() {
               </Text>
             </View>
           </View>
-          <View style={[styles.tipsContainer, { backgroundColor: theme.backgroundSecondary }]}>
+          <View style={[styles.tipsContainer, { backgroundColor: theme.card }]}>
             {diagnoseTips.map((tip, index) => renderTip(tip, index))}
           </View>
         </View>

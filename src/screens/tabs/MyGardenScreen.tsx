@@ -995,6 +995,7 @@ export default function MyGardenScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+      <View style={{ height: 95 }}></View>
     </View>
   );
 }

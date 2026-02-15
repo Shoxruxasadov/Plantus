@@ -27,7 +27,7 @@ const ILLUSTRATION_DARK = require('../../../assets/images/gardenMan.png');
 export default function AssistantScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
-  const { isLoggedIn, userCollection, chatCreated, setChatCreated, darkMode } = useAppStore();
+  const { isLoggedIn, userCollection, chatCreated, setChatCreated, setAssistantChatId, darkMode } = useAppStore();
 
   const isDark = darkMode;
   const theme = isDark ? DARK_COLORS : COLORS;
@@ -64,7 +64,8 @@ export default function AssistantScreen() {
 
       if (existingChat) {
         setChatId(existingChat.id);
-        setChatCreated(true);
+        await setAssistantChatId(existingChat.id);
+        await setChatCreated(true);
         navigation.navigate('Chat', { chatId: existingChat.id });
       } else {
         const { data: newChat, error } = await createAIChat(userCollection.id);
@@ -74,7 +75,8 @@ export default function AssistantScreen() {
         }
         if (newChat) {
           setChatId(newChat.id);
-          setChatCreated(true);
+          await setAssistantChatId(newChat.id);
+          await setChatCreated(true);
           navigation.navigate('Chat', { chatId: newChat.id });
         }
       }

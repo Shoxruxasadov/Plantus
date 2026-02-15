@@ -35,8 +35,7 @@ import * as MediaLibrary from 'expo-media-library';
 
 import { RootStackParamList } from '../../types';
 import { ScannerMode, identifyPlant } from '../../services/api';
-import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
-import { useTheme } from '../../hooks';
+import { DARK_COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
 import { useAppStore } from '../../store/appStore';
 import { createSnap } from '../../services/supabase';
 
@@ -56,8 +55,8 @@ export default function ScannerScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
   const { userCollection } = useAppStore();
+  const theme = DARK_COLORS; // Scanner faqat dark mode
 
   const cameraRef = useRef<CameraView>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -107,6 +106,27 @@ export default function ScannerScreen() {
       setHasPermission(status === 'granted');
     })();
   }, []);
+
+  // Flash va rotate tugmalarini header o‘ngiga qo‘yish — header ostida bosilmay qolmasin
+  useEffect(() => {
+    if (hasPermission !== true) return;
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={styles.headerRightControls}>
+            <TouchableOpacity style={styles.controlButton} onPress={toggleFlash}>
+              {enableTorch ? (
+                <Lightning size={22} color={theme.textLight} />
+              ) : (
+                <LightningSlash size={22} color={theme.textLight} />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.controlButton} onPress={toggleCameraType}>
+              <CameraRotate size={22} color={theme.textLight} />
+            </TouchableOpacity>
+        </View>
+      ),
+    });
+  }, [navigation, hasPermission, enableTorch, theme.textLight]);
 
   // Load most recent photo from gallery for the gallery button thumbnail
   useEffect(() => {
@@ -278,7 +298,7 @@ export default function ScannerScreen() {
   if (hasPermission === null) {
     return (
       <View style={styles.permissionContainer}>
-        <ActivityIndicator size="large" color={COLORS.textSecondary} />
+        <ActivityIndicator size="large" color={theme.textSecondary} />
       </View>
     );
   }
@@ -286,7 +306,7 @@ export default function ScannerScreen() {
   if (hasPermission === false) {
     return (
       <View style={styles.permissionContainer}>
-        <CameraIcon size={64} color={COLORS.textTertiary} />
+        <CameraIcon size={64} color={theme.textTertiary} />
         <Text style={styles.permissionTitle}>Camera Access Required</Text>
         <Text style={styles.permissionText}>
           Please enable camera access in your device settings to scan plants.
@@ -368,7 +388,7 @@ export default function ScannerScreen() {
             )}
             <Text style={styles.loadingTitle}>{currentStep.title}</Text>
             <Text style={styles.loadingSubtitle}>{currentStep.subtitle}</Text>
-            <ActivityIndicator size="large" color={COLORS.textLight} style={{ marginTop: SPACING.xl }} />
+            <ActivityIndicator size="large" color={theme.textLight} style={{ marginTop: SPACING.xl }} />
           </View>
         </View>
       )}
@@ -379,18 +399,18 @@ export default function ScannerScreen() {
           {/* Top controls still visible */}
           <View style={[styles.errorTopControls, { paddingTop: insets.top + SPACING.sm }]}>
             <TouchableOpacity style={styles.controlButton} onPress={handleClose}>
-              <X size={26} color={COLORS.textLight} />
+              <X size={26} color={theme.textLight} />
             </TouchableOpacity>
             <View style={styles.topRightControls}>
               <TouchableOpacity style={styles.controlButton} onPress={toggleFlash}>
                 {enableTorch ? (
-                  <Lightning size={22} color={COLORS.textLight} />
+                  <Lightning size={22} color={theme.textLight} />
                 ) : (
-                  <LightningSlash size={22} color={COLORS.textLight} />
+                  <LightningSlash size={22} color={theme.textLight} />
                 )}
               </TouchableOpacity>
               <TouchableOpacity style={styles.controlButton} onPress={toggleCameraType}>
-                <CameraRotate size={22} color={COLORS.textLight} />
+                <CameraRotate size={22} color={theme.textLight} />
               </TouchableOpacity>
             </View>
           </View>
@@ -411,7 +431,7 @@ export default function ScannerScreen() {
             </Text>
 
             <View style={styles.errorImageContainer}>
-              <Leaf size={64} color={COLORS.primary} />
+              <Leaf size={64} color={theme.primary} />
               <View style={styles.errorBadge}>
                 <WarningCircle size={20} color="#FF9800" />
               </View>
@@ -421,30 +441,8 @@ export default function ScannerScreen() {
               style={[styles.retakeButton, { marginBottom: insets.bottom + SPACING.md }]}
               onPress={handleRetake}
             >
-              <CameraIcon size={20} color={COLORS.textLight} />
+              <CameraIcon size={20} color={theme.textLight} />
               <Text style={styles.retakeButtonText}>Retake Photo</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      {/* Top Controls */}
-      {!scanError && (
-        <View style={[styles.topControls, { paddingTop: insets.top + SPACING.sm }]}>
-          <TouchableOpacity style={styles.controlButton} onPress={handleClose}>
-            <X size={26} color={COLORS.textLight} />
-          </TouchableOpacity>
-
-          <View style={styles.topRightControls}>
-            <TouchableOpacity style={styles.controlButton} onPress={toggleFlash}>
-              {enableTorch ? (
-                <Lightning size={22} color={COLORS.textLight} />
-              ) : (
-                <LightningSlash size={22} color={COLORS.textLight} />
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.controlButton} onPress={toggleCameraType}>
-              <CameraRotate size={22} color={COLORS.textLight} />
             </TouchableOpacity>
           </View>
         </View>
@@ -505,7 +503,7 @@ export default function ScannerScreen() {
             {lastPhotoUri ? (
               <Image source={{ uri: lastPhotoUri }} style={styles.galleryButtonImage} resizeMode="cover" />
             ) : (
-              <ImageIcon size={24} color={COLORS.textLight} />
+              <ImageIcon size={24} color={theme.textLight} />
             )}
           </TouchableOpacity>
 
@@ -518,7 +516,7 @@ export default function ScannerScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.infoButton} onPress={handleInfo}>
-            <Info size={28} color={COLORS.textLight} />
+            <Info size={28} color={theme.textLight} />
           </TouchableOpacity>
         </View>
       )}
@@ -533,7 +531,7 @@ const styles = StyleSheet.create({
   },
   permissionContainer: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: DARK_COLORS.background,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SPACING.xl,
@@ -541,19 +539,19 @@ const styles = StyleSheet.create({
   permissionTitle: {
     fontSize: FONT_SIZES.xl,
     fontWeight: '600',
-    color: COLORS.text,
+    color: DARK_COLORS.text,
     marginTop: SPACING.xl,
     marginBottom: SPACING.md,
   },
   permissionText: {
     fontSize: FONT_SIZES.md,
-    color: COLORS.textSecondary,
+    color: DARK_COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: SPACING.xl,
   },
   permissionButton: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: DARK_COLORS.primary,
     paddingHorizontal: SPACING.xl,
     paddingVertical: SPACING.md,
     borderRadius: RADIUS.round,
@@ -561,7 +559,7 @@ const styles = StyleSheet.create({
   permissionButtonText: {
     fontSize: FONT_SIZES.lg,
     fontWeight: '600',
-    color: COLORS.textLight,
+    color: DARK_COLORS.textLight,
   },
   // Loading overlay
   loadingOverlay: {
@@ -585,7 +583,7 @@ const styles = StyleSheet.create({
     height: 180,
     borderRadius: 90,
     borderWidth: 3,
-    borderColor: COLORS.textLight,
+    borderColor: DARK_COLORS.textLight,
     overflow: 'hidden',
     marginBottom: SPACING.xl,
   },
@@ -596,7 +594,7 @@ const styles = StyleSheet.create({
   loadingTitle: {
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
-    color: COLORS.textLight,
+    color: DARK_COLORS.textLight,
     marginBottom: SPACING.sm,
   },
   loadingSubtitle: {
@@ -633,7 +631,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: COLORS.background,
+    backgroundColor: DARK_COLORS.background,
     borderTopLeftRadius: RADIUS.xxl,
     borderTopRightRadius: RADIUS.xxl,
     paddingHorizontal: SPACING.xl,
@@ -643,12 +641,12 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: FONT_SIZES.xxl,
     fontWeight: '700',
-    color: COLORS.text,
+    color: DARK_COLORS.text,
     marginBottom: SPACING.sm,
   },
   errorSubtitle: {
     fontSize: FONT_SIZES.md,
-    color: COLORS.textSecondary,
+    color: DARK_COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: SPACING.xl,
@@ -657,7 +655,7 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: RADIUS.xl,
-    backgroundColor: COLORS.backgroundSecondary,
+    backgroundColor: DARK_COLORS.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SPACING.xxl,
@@ -674,7 +672,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: COLORS.background,
+    borderColor: DARK_COLORS.background,
   },
   retakeButton: {
     flexDirection: 'row',
@@ -694,7 +692,7 @@ const styles = StyleSheet.create({
   retakeButtonText: {
     fontSize: FONT_SIZES.xl,
     fontWeight: '600',
-    color: COLORS.textLight,
+    color: DARK_COLORS.textLight,
   },
   // Controls
   topControls: {
@@ -707,22 +705,41 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     zIndex: 10,
   },
+  headerRightControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    backgroundColor: 'transparent',
+    marginHorizontal: 2,
+  },
+  headerControlButtonWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    backgroundColor: 'transparent',
+  },
   topRightControls: {
     flexDirection: 'row',
     gap: SPACING.md,
   },
-  controlButton: {
+  controlButtonPlaceholder: {
     width: 44,
     height: 44,
+  },
+  controlButton: {
+    width: 36,
+    height: 36,
     borderRadius: 22,
-    backgroundColor: 'rgba(80, 80, 80, 0.5)',
+    // overflow: 'hidden',
+    // backgroundColor: 'rgba(80, 80, 80, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
+    // shadowColor: '#000',
+    // shadowOffset: { width: 0, height: 2 },
+    // shadowOpacity: 0.3,
+    // shadowRadius: 6,
+    // elevation: 4,
   },
   cameraWrapper: {
     flex: 1,
@@ -744,7 +761,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 40,
     height: 40,
-    borderColor: COLORS.textLight,
+    borderColor: DARK_COLORS.textLight,
   },
   topLeft: {
     top: 0,
@@ -795,7 +812,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.primary,
+    backgroundColor: DARK_COLORS.primary,
     top: 4,
   },
   modeButton: {
@@ -810,7 +827,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.6)',
   },
   modeButtonTextActive: {
-    color: COLORS.textLight,
+    color: DARK_COLORS.textLight,
     fontWeight: '700',
   },
   bottomControls: {
