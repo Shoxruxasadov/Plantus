@@ -13,7 +13,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'phosphor-react-native';
 
 import { RootStackParamList } from '../../types';
-import { COLORS, FONT_SIZES, SPACING, RADIUS, PLACEHOLDER_IMAGE } from '../../utils/theme';
+import { FONT_SIZES, SPACING, RADIUS, PLACEHOLDER_IMAGE } from '../../utils/theme';
+import { useTheme } from '../../hooks';
 
 type RouteProps = RouteProp<RootStackParamList, 'Article'>;
 const { width } = Dimensions.get('window');
@@ -22,6 +23,7 @@ export default function ArticleScreen() {
   const navigation = useNavigation();
   const route = useRoute<RouteProps>();
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
 
   const { article } = route.params;
 
@@ -48,9 +50,9 @@ export default function ArticleScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Full-width image with X button overlay */}
-      <View style={styles.imageContainer}>
+      <View style={[styles.imageContainer, { backgroundColor: theme.backgroundTertiary }]}>
         <Image
           source={{ uri: article.image || PLACEHOLDER_IMAGE }}
           style={styles.articleImage}
@@ -60,27 +62,27 @@ export default function ArticleScreen() {
           style={[styles.closeButton, { top: insets.top + SPACING.sm }]}
           onPress={() => navigation.goBack()}
         >
-          <X size={24} color={COLORS.textLight} />
+          <X size={24} color={theme.textLight} />
         </TouchableOpacity>
       </View>
 
       {/* Content in card-like section */}
       <ScrollView
-        style={styles.scrollView}
+        style={[styles.scrollView, { backgroundColor: theme.background }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>{getTitle()}</Text>
+        <Text style={[styles.title, { color: theme.text }]}>{getTitle()}</Text>
 
         {/* Description */}
-        <View style={styles.descriptionCard}>
-          <Text style={styles.description}>{getDescription()}</Text>
+        <View style={[styles.descriptionCard, { backgroundColor: theme.backgroundSecondary }]}>
+          <Text style={[styles.description, { color: theme.textSecondary }]}>{getDescription()}</Text>
         </View>
 
         {/* Content sections */}
         {getContent() && (
-          <View style={styles.contentSection}>
-            <Text style={styles.contentText}>{getContent()}</Text>
+          <View style={[styles.contentSection, { backgroundColor: theme.backgroundSecondary }]}>
+            <Text style={[styles.contentText, { color: theme.text }]}>{getContent()}</Text>
           </View>
         )}
       </ScrollView>
@@ -91,12 +93,10 @@ export default function ArticleScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   imageContainer: {
     width,
     height: width * 0.65,
-    backgroundColor: COLORS.backgroundTertiary,
   },
   articleImage: {
     width: '100%',
@@ -117,7 +117,6 @@ const styles = StyleSheet.create({
     marginTop: -20,
     borderTopLeftRadius: RADIUS.xl,
     borderTopRightRadius: RADIUS.xl,
-    backgroundColor: COLORS.background,
   },
   scrollContent: {
     padding: SPACING.lg,
@@ -126,30 +125,25 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZES.title,
     fontWeight: 'bold',
-    color: COLORS.text,
     lineHeight: 34,
     marginBottom: SPACING.lg,
     marginTop: SPACING.md,
   },
   descriptionCard: {
-    backgroundColor: COLORS.backgroundSecondary,
     borderRadius: RADIUS.lg,
     padding: SPACING.lg,
     marginBottom: SPACING.lg,
   },
   description: {
     fontSize: FONT_SIZES.md,
-    color: COLORS.textSecondary,
     lineHeight: 24,
   },
   contentSection: {
-    backgroundColor: COLORS.backgroundSecondary,
     borderRadius: RADIUS.lg,
     padding: SPACING.lg,
   },
   contentText: {
     fontSize: FONT_SIZES.md,
-    color: COLORS.text,
     lineHeight: 24,
   },
 });

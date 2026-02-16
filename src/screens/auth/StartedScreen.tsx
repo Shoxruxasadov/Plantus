@@ -16,7 +16,13 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { RootStackParamList } from "../../types";
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from "../../utils/theme";
 import { useTheme } from "../../hooks";
-import { supabase, usersTable, groupsTable, getAIChat } from "../../services/supabase";
+import { GOOGLE_WEB_CLIENT_ID } from "../../config/auth";
+import {
+  supabase,
+  usersTable,
+  groupsTable,
+  getAIChat,
+} from "../../services/supabase";
 import { setupGardenNotificationsForUser } from "../../services/notifications";
 import { useAppStore } from "../../store/appStore";
 import { showAlert } from "../../utils/helpers";
@@ -29,10 +35,8 @@ try {
   GoogleSignin =
     require("@react-native-google-signin/google-signin").GoogleSignin;
   GoogleSignin.configure({
-    webClientId:
-      "293762405649-t6hjlffj5oofs7r6p8qqgbp3ftqgukkb.apps.googleusercontent.com",
-    iosClientId:
-      "293762405649-t6hjlffj5oofs7r6p8qqgbp3ftqgukkb.apps.googleusercontent.com",
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    iosClientId: GOOGLE_WEB_CLIENT_ID,
   });
 } catch (e) {
   console.log("Google Sign-In not available (Expo Go)");
@@ -42,7 +46,15 @@ export default function StartedScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const { setUser, setSession, setUserCollection, setAssistantChatId, setChatCreated } = useAppStore();
+  const {
+    setUser,
+    setSession,
+    setUserCollection,
+    setAssistantChatId,
+    setChatCreated,
+    notifications,
+    darkMode,
+  } = useAppStore();
   const [loading, setLoading] = useState<"apple" | "google" | "email" | null>(
     null,
   );
@@ -75,7 +87,8 @@ export default function StartedScreen() {
           );
           setUser(data.user);
           setSession(data.session);
-          setupGardenNotificationsForUser(data.user.id).catch(() => {});
+          if (notifications)
+            setupGardenNotificationsForUser(data.user.id).catch(() => {});
           navigation.navigate("MainTabs");
         }
       }
@@ -120,7 +133,8 @@ export default function StartedScreen() {
           );
           setUser(data.user);
           setSession(data.session);
-          setupGardenNotificationsForUser(data.user.id).catch(() => {});
+          if (notifications)
+            setupGardenNotificationsForUser(data.user.id).catch(() => {});
           navigation.navigate("MainTabs");
         }
       }
@@ -161,24 +175,28 @@ export default function StartedScreen() {
       });
 
       await setUserCollection({ id: userId, email, name });
-      getAIChat(userId).then(({ data: chat }) => {
-        if (chat) {
-          setAssistantChatId(chat.id);
-          setChatCreated(true);
-        }
-      }).catch(() => {});
+      getAIChat(userId)
+        .then(({ data: chat }) => {
+          if (chat) {
+            setAssistantChatId(chat.id);
+            setChatCreated(true);
+          }
+        })
+        .catch(() => {});
     } else {
       await setUserCollection({
         id: existingUser.id,
         email: existingUser.email,
         name: existingUser.name,
       });
-      getAIChat(existingUser.id).then(({ data: chat }) => {
-        if (chat) {
-          setAssistantChatId(chat.id);
-          setChatCreated(true);
-        }
-      }).catch(() => {});
+      getAIChat(existingUser.id)
+        .then(({ data: chat }) => {
+          if (chat) {
+            setAssistantChatId(chat.id);
+            setChatCreated(true);
+          }
+        })
+        .catch(() => {});
     }
   };
 
@@ -187,8 +205,13 @@ export default function StartedScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      {/* Back Button */}
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top, backgroundColor: theme.background },
+      ]}
+    >
+      {/* Header: Back + Skip */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -196,6 +219,14 @@ export default function StartedScreen() {
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <ArrowLeft size={24} color={theme.text} weight="bold" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("MainTabs")}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <Text style={[styles.skipText, { color: theme.textSecondary }]}>
+            Skip
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -207,7 +238,9 @@ export default function StartedScreen() {
           resizeMode="contain"
         />
         <Text style={[styles.title, { color: theme.text }]}>Sign Up</Text>
-        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Keep every plant healthy</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+          Keep every plant healthy
+        </Text>
         {/* Buttons */}
         <View
           style={[styles.footer, { paddingBottom: insets.bottom + SPACING.xl }]}
@@ -223,11 +256,9 @@ export default function StartedScreen() {
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <>
-                  <AppleLogo
-                    size={22}
-                    color="#FFFFFF"
-                    weight="fill"
-                    style={styles.buttonIcon}
+                  <Image
+                    source={darkMode ? require("../../../assets/apple_black.png") : require("../../../assets/apple_white.png")}
+                    style={styles.googleIcon}
                   />
                   <Text style={styles.appleButtonText}>
                     Continue with Apple
@@ -303,11 +334,16 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
   },
   backButton: {
     padding: SPACING.xs,
+  },
+  skipText: {
+    fontSize: FONT_SIZES.md,
+    fontWeight: "600",
   },
   content: {
     flex: 1,

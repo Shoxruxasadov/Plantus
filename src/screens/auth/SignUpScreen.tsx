@@ -27,7 +27,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export default function SignUpScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
-  const { setUser, setSession, setUserCollection } = useAppStore();
+  const { setUser, setSession, setUserCollection, notifications } = useAppStore();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -96,7 +96,7 @@ export default function SignUpScreen() {
           email: email.trim(),
           name: name.trim(),
         });
-        setupGardenNotificationsForUser(data.user.id).catch(() => {});
+        if (notifications) setupGardenNotificationsForUser(data.user.id).catch(() => {});
         navigation.navigate('MainTabs');
       } else if (data.user && !data.session) {
         navigation.navigate('Success', {

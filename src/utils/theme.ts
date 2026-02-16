@@ -36,6 +36,12 @@ export const COLORS = {
   error: '#FF4D5B',
   info: '#00AFFE',
 
+  // Status Container colors
+  errorContainer: '#FF4D5B1A',
+  warningContainer: '#FFF3CC',
+  successContainer: '#E5F9E0',
+  infoContainer: '#E5F9E0',
+
   // Border colors
   border: '#F5F5F6',
   borderLight: '#E7E8EA',
@@ -102,6 +108,12 @@ export const DARK_COLORS = {
 
   // Status colors
   error: '#FF5963',
+
+    // Status Container colors
+    errorContainer: '#FF4D5B1A',
+    warningContainer: '#FFF3CC',
+    successContainer: '#E5F9E0',
+    infoContainer: '#E5F9E0',
 
   // Custom colors
   textfieldColor: '#252525',

@@ -13,6 +13,8 @@ import {
   RefreshControl,
   Animated,
   Dimensions,
+  Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -74,6 +76,31 @@ function useSheetAnimation(visible: boolean, onClose: () => void) {
   return { overlay, sheetY, closeSheet };
 }
 
+function useCenterSheetAnimation(visible: boolean, onClose: () => void) {
+  const overlay = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      overlay.setValue(0);
+      scale.setValue(0);
+      Animated.parallel([
+        Animated.timing(overlay, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 65, friction: 11 }),
+      ]).start();
+    }
+  }, [visible]);
+
+  const closeSheet = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(overlay, { toValue: 0, duration: 200, useNativeDriver: true }),
+      Animated.timing(scale, { toValue: 0, duration: 250, useNativeDriver: true }),
+    ]).start(() => onClose());
+  }, [onClose]);
+
+  return { overlay, scale, closeSheet };
+}
+
 export default function GroupScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
@@ -91,9 +118,9 @@ export default function GroupScreen() {
   // Space options (header dots)
   const [spaceOptionsVisible, setSpaceOptionsVisible] = useState(false);
   const spaceSheet = useSheetAnimation(spaceOptionsVisible, () => setSpaceOptionsVisible(false));
-  // Change space name sheet
+  // Change space name sheet (center modal)
   const [changeNameVisible, setChangeNameVisible] = useState(false);
-  const changeNameSheet = useSheetAnimation(changeNameVisible, () => setChangeNameVisible(false));
+  const changeNameSheet = useCenterSheetAnimation(changeNameVisible, () => setChangeNameVisible(false));
   const [editSpaceName, setEditSpaceName] = useState('');
   const [savingName, setSavingName] = useState(false);
 
@@ -101,9 +128,9 @@ export default function GroupScreen() {
   const [plantOptionsVisible, setPlantOptionsVisible] = useState(false);
   const plantSheet = useSheetAnimation(plantOptionsVisible, () => { setPlantOptionsVisible(false); setSelectedPlant(null); });
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
-  // Change plant name
+  // Change plant name (center modal)
   const [changePlantNameVisible, setChangePlantNameVisible] = useState(false);
-  const changePlantNameSheet = useSheetAnimation(changePlantNameVisible, () => setChangePlantNameVisible(false));
+  const changePlantNameSheet = useCenterSheetAnimation(changePlantNameVisible, () => setChangePlantNameVisible(false));
   const [editPlantName, setEditPlantName] = useState('');
   const [savingPlantName, setSavingPlantName] = useState(false);
   // Change space (move to another group)
@@ -403,7 +430,7 @@ export default function GroupScreen() {
         </Animated.View>
       </Modal>
 
-      {/* Change Space Name sheet (image 4) */}
+      {/* Change Space Name sheet (center modal) */}
       <Modal
         visible={changeNameVisible}
         animationType="none"
@@ -413,34 +440,42 @@ export default function GroupScreen() {
         <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => changeNameSheet.closeSheet()}>
           <Animated.View style={[styles.sheetOverlay, { opacity: changeNameSheet.overlay }]} />
         </TouchableOpacity>
-        <Animated.View style={[styles.sheetWrapper, { transform: [{ translateY: changeNameSheet.sheetY }] }]} pointerEvents="box-none">
-          <View style={[styles.sheet, { backgroundColor: theme.background }]} onStartShouldSetResponder={() => true}>
-            <View style={[styles.sheetHandle, { backgroundColor: theme.border }]} />
-            <Text style={[styles.sheetTitle, { color: theme.text }]}>Change Space Name</Text>
-            <Text style={[styles.inputLabel, { color: theme.text }]}>Name of Space</Text>
-            <TextInput
-              style={[styles.sheetInput, { backgroundColor: theme.backgroundSecondary, color: theme.text }]}
-              placeholder="Space name"
-              placeholderTextColor={theme.textTertiary}
-              value={editSpaceName}
-              onChangeText={setEditSpaceName}
-              autoFocus
-            />
-            <View style={styles.sheetInfo}>
-              <Text style={[styles.sheetInfoText, { color: theme.textSecondary }]}>
-                Creating space is effective way of organizing your plants.
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={[styles.sheetBtn, savingName && styles.sheetBtnDisabled]}
-              onPress={handleChangeSpaceName}
-              disabled={savingName || !editSpaceName.trim()}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.sheetBtnText}>Change Space Name</Text>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
+        <View style={styles.sheetWrapperCenter} pointerEvents="box-none">
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.sheetKeyboardAvoid}
+            keyboardVerticalOffset={40}
+          >
+            <Animated.View style={[styles.sheetCenter, { transform: [{ scale: changeNameSheet.scale }] }]}>
+              <View style={[styles.sheet, styles.sheetCenterCard, { backgroundColor: theme.background, paddingBottom: 20 }]} onStartShouldSetResponder={() => true}>
+                <View style={[styles.sheetHandle, { backgroundColor:  'transparent', marginTop: 0, marginBottom: 0, height: 24 }]} />
+                <Text style={[styles.sheetTitle, { color: theme.text }]}>Change Space Name</Text>
+                <Text style={[styles.inputLabel, { color: theme.text }]}>Name of Space</Text>
+                <TextInput
+                  style={[styles.sheetInput, { backgroundColor: theme.backgroundSecondary, color: theme.text }]}
+                  placeholder="Space name"
+                  placeholderTextColor={theme.textTertiary}
+                  value={editSpaceName}
+                  onChangeText={setEditSpaceName}
+                  autoFocus
+                />
+                <View style={styles.sheetInfo}>
+                  <Text style={[styles.sheetInfoText, { color: theme.textSecondary }]}>
+                    Creating space is effective way of organizing your plants.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.sheetBtn, savingName && styles.sheetBtnDisabled]}
+                  onPress={handleChangeSpaceName}
+                  disabled={savingName || !editSpaceName.trim()}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.sheetBtnText}>Change Space Name</Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          </KeyboardAvoidingView>
+        </View>
       </Modal>
 
       {/* Plant options sheet (image 5) */}
@@ -476,7 +511,7 @@ export default function GroupScreen() {
         </Animated.View>
       </Modal>
 
-      {/* Change Plant Name */}
+      {/* Change Plant Name (center modal) */}
       <Modal
         visible={changePlantNameVisible}
         animationType="none"
@@ -486,29 +521,37 @@ export default function GroupScreen() {
         <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => changePlantNameSheet.closeSheet()}>
           <Animated.View style={[styles.sheetOverlay, { opacity: changePlantNameSheet.overlay }]} />
         </TouchableOpacity>
-        <Animated.View style={[styles.sheetWrapper, { transform: [{ translateY: changePlantNameSheet.sheetY }] }]} pointerEvents="box-none">
-          <View style={[styles.sheet, { backgroundColor: theme.background }]} onStartShouldSetResponder={() => true}>
-            <View style={[styles.sheetHandle, { backgroundColor: theme.border }]} />
-            <Text style={[styles.sheetTitle, { color: theme.text }]}>Change Plant Name</Text>
-            <Text style={[styles.inputLabel, { color: theme.text }]}>Name of Plant</Text>
-            <TextInput
-              style={[styles.sheetInput, { backgroundColor: theme.backgroundSecondary, color: theme.text }]}
-              placeholder="Plant name"
-              placeholderTextColor={theme.textTertiary}
-              value={editPlantName}
-              onChangeText={setEditPlantName}
-              autoFocus
-            />
-            <TouchableOpacity
-              style={[styles.sheetBtn, savingPlantName && styles.sheetBtnDisabled]}
-              onPress={handleChangePlantName}
-              disabled={savingPlantName || !editPlantName.trim()}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.sheetBtnText}>Save</Text>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
+        <View style={styles.sheetWrapperCenter} pointerEvents="box-none">
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.sheetKeyboardAvoid}
+            keyboardVerticalOffset={40}
+          >
+            <Animated.View style={[styles.sheetCenter, { transform: [{ scale: changePlantNameSheet.scale }] }]}>
+              <View style={[styles.sheet, styles.sheetCenterCard, { backgroundColor: theme.background, paddingBottom: 20 }]} onStartShouldSetResponder={() => true}>
+                <View style={[styles.sheetHandle, { backgroundColor: 'transparent', marginTop: 0, marginBottom: 0, height: 24 }]} />
+                <Text style={[styles.sheetTitle, { color: theme.text }]}>Change Plant Name</Text>
+                <Text style={[styles.inputLabel, { color: theme.text }]}>Name of Plant</Text>
+                <TextInput
+                  style={[styles.sheetInput, { backgroundColor: theme.backgroundSecondary, color: theme.text }]}
+                  placeholder="Plant name"
+                  placeholderTextColor={theme.textTertiary}
+                  value={editPlantName}
+                  onChangeText={setEditPlantName}
+                  autoFocus
+                />
+                <TouchableOpacity
+                  style={[styles.sheetBtn, savingPlantName && styles.sheetBtnDisabled]}
+                  onPress={handleChangePlantName}
+                  disabled={savingPlantName || !editPlantName.trim()}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.sheetBtnText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          </KeyboardAvoidingView>
+        </View>
       </Modal>
 
       {/* Change Space (move to another group) */}
@@ -652,6 +695,28 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     justifyContent: 'flex-end',
+  },
+  sheetWrapperCenter: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sheetKeyboardAvoid: {
+    width: '100%',
+    maxWidth: 400,
+    paddingHorizontal: SPACING.lg,
+  },
+  sheetCenter: {
+    width: '100%',
+  },
+  sheetCenterCard: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderRadius: 20,
   },
   sheet: {
     backgroundColor: '#fff',

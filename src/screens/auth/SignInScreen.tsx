@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,52 +10,77 @@ import {
   ScrollView,
   ActivityIndicator,
   Image,
-} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, AppleLogo } from 'phosphor-react-native';
-import * as AppleAuthentication from 'expo-apple-authentication';
+} from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ArrowLeft, AppleLogo } from "phosphor-react-native";
+import * as AppleAuthentication from "expo-apple-authentication";
 
-import { RootStackParamList } from '../../types';
-import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
-import { signInWithEmail, getUserData, getAIChat, supabase, usersTable, groupsTable } from '../../services/supabase';
-import { setupGardenNotificationsForUser } from '../../services/notifications';
-import { useAppStore } from '../../store/appStore';
-import { isValidEmail, showAlert } from '../../utils/helpers';
+import { RootStackParamList } from "../../types";
+import { COLORS, FONT_SIZES, SPACING, RADIUS } from "../../utils/theme";
+import { GOOGLE_WEB_CLIENT_ID } from "../../config/auth";
+import {
+  signInWithEmail,
+  getUserData,
+  getAIChat,
+  supabase,
+  usersTable,
+  groupsTable,
+} from "../../services/supabase";
+import { setupGardenNotificationsForUser } from "../../services/notifications";
+import { useAppStore } from "../../store/appStore";
+import { isValidEmail, showAlert } from "../../utils/helpers";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-// Google Sign-In
+// Google Sign-In – Supabase Google provider bilan bir xil Client ID ishlatiladi
 let GoogleSignin: any = null;
 try {
-  GoogleSignin = require('@react-native-google-signin/google-signin').GoogleSignin;
+  GoogleSignin =
+    require("@react-native-google-signin/google-signin").GoogleSignin;
+  GoogleSignin.configure({
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    iosClientId: GOOGLE_WEB_CLIENT_ID,
+  });
 } catch (e) {}
 
 export default function SignInScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
-  const { setUser, setSession, setUserCollection, setAssistantChatId, setChatCreated } = useAppStore();
+  const {
+    setUser,
+    setSession,
+    setUserCollection,
+    setAssistantChatId,
+    setChatCreated,
+    notifications,
+    darkMode,
+  } = useAppStore();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [socialLoading, setSocialLoading] = useState<'apple' | 'google' | null>(null);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [socialLoading, setSocialLoading] = useState<"apple" | "google" | null>(
+    null,
+  );
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
+    {},
+  );
 
   const validateForm = (): boolean => {
     const newErrors: { email?: string; password?: string } = {};
 
     if (!email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!isValidEmail(email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = "Please enter a valid email";
     }
 
     if (!password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
     } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = "Password must be at least 6 characters";
     }
 
     setErrors(newErrors);
@@ -70,7 +95,7 @@ export default function SignInScreen() {
       const { data, error } = await signInWithEmail(email.trim(), password);
 
       if (error) {
-        showAlert('Sign In Failed', error.message);
+        showAlert("Sign In Failed", error.message);
         return;
       }
 
@@ -85,29 +110,36 @@ export default function SignInScreen() {
             email: userData.email,
             name: userData.name,
           });
-          getAIChat(userData.id).then(({ data: chat }) => {
-            if (chat) {
-              setAssistantChatId(chat.id);
-              setChatCreated(true);
-            }
-          }).catch(() => {});
+          getAIChat(userData.id)
+            .then(({ data: chat }) => {
+              if (chat) {
+                setAssistantChatId(chat.id);
+                setChatCreated(true);
+              }
+            })
+            .catch(() => {});
         }
 
-        setupGardenNotificationsForUser(data.user.id).catch(() => {});
-        navigation.navigate('MainTabs');
+        if (notifications)
+          setupGardenNotificationsForUser(data.user.id).catch(() => {});
+        navigation.navigate("MainTabs");
       }
     } catch (error) {
-      console.error('Sign in error:', error);
-      showAlert('Error', 'An unexpected error occurred');
+      console.error("Sign in error:", error);
+      showAlert("Error", "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePostSignIn = async (userId: string, userEmail: string, name: string) => {
+  const handlePostSignIn = async (
+    userId: string,
+    userEmail: string,
+    name: string,
+  ) => {
     const { data: existingUser } = await usersTable()
-      .select('*')
-      .eq('id', userId)
+      .select("*")
+      .eq("id", userId)
       .single();
 
     if (!existingUser) {
@@ -118,72 +150,81 @@ export default function SignInScreen() {
         created_at: new Date().toISOString(),
       });
       await groupsTable().insert({
-        name: 'General',
+        name: "General",
         user: userId,
         created_at: new Date().toISOString(),
         deletemode: false,
       });
       await setUserCollection({ id: userId, email: userEmail, name });
-      getAIChat(userId).then(({ data: chat }) => {
-        if (chat) {
-          setAssistantChatId(chat.id);
-          setChatCreated(true);
-        }
-      }).catch(() => {});
+      getAIChat(userId)
+        .then(({ data: chat }) => {
+          if (chat) {
+            setAssistantChatId(chat.id);
+            setChatCreated(true);
+          }
+        })
+        .catch(() => {});
     } else {
       await setUserCollection({
         id: existingUser.id,
         email: existingUser.email,
         name: existingUser.name,
       });
-      getAIChat(existingUser.id).then(({ data: chat }) => {
-        if (chat) {
-          setAssistantChatId(chat.id);
-          setChatCreated(true);
-        }
-      }).catch(() => {});
+      getAIChat(existingUser.id)
+        .then(({ data: chat }) => {
+          if (chat) {
+            setAssistantChatId(chat.id);
+            setChatCreated(true);
+          }
+        })
+        .catch(() => {});
     }
   };
 
   const handleGoogleSignIn = async () => {
     if (!GoogleSignin) {
-      showAlert('Not Available', 'Google Sign-In requires a development build.');
+      showAlert(
+        "Not Available",
+        "Google Sign-In requires a development build.",
+      );
       return;
     }
     try {
-      setSocialLoading('google');
+      setSocialLoading("google");
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
       const { idToken } = await GoogleSignin.getTokens();
       if (idToken) {
         const { data, error } = await supabase.auth.signInWithIdToken({
-          provider: 'google',
+          provider: "google",
           token: idToken,
         });
         if (error) throw error;
         if (data.user) {
           await handlePostSignIn(
             data.user.id,
-            userInfo.data?.user.email || data.user.email || '',
-            userInfo.data?.user.givenName || 'User'
+            userInfo.data?.user.email || data.user.email || "",
+            userInfo.data?.user.givenName || "User",
           );
           setUser(data.user);
           setSession(data.session);
-          navigation.navigate('MainTabs');
+          if (notifications)
+            setupGardenNotificationsForUser(data.user.id).catch(() => {});
+          navigation.navigate("MainTabs");
         }
       }
     } catch (error: any) {
-      console.error('Google sign-in error:', error);
-      showAlert('Error', 'Failed to sign in with Google');
+      console.error("Google sign-in error:", error);
+      showAlert("Error", "Failed to sign in with Google");
     } finally {
       setSocialLoading(null);
     }
   };
 
   const handleAppleSignIn = async () => {
-    if (Platform.OS !== 'ios') return;
+    if (Platform.OS !== "ios") return;
     try {
-      setSocialLoading('apple');
+      setSocialLoading("apple");
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
@@ -192,25 +233,27 @@ export default function SignInScreen() {
       });
       if (credential.identityToken) {
         const { data, error } = await supabase.auth.signInWithIdToken({
-          provider: 'apple',
+          provider: "apple",
           token: credential.identityToken,
         });
         if (error) throw error;
         if (data.user) {
           await handlePostSignIn(
             data.user.id,
-            credential.email || data.user.email || '',
-            credential.fullName?.givenName || 'User'
+            credential.email || data.user.email || "",
+            credential.fullName?.givenName || "User",
           );
           setUser(data.user);
           setSession(data.session);
-          navigation.navigate('MainTabs');
+          if (notifications)
+            setupGardenNotificationsForUser(data.user.id).catch(() => {});
+          navigation.navigate("MainTabs");
         }
       }
     } catch (error: any) {
-      if (error.code !== 'ERR_REQUEST_CANCELED') {
-        console.error('Apple sign-in error:', error);
-        showAlert('Error', 'Failed to sign in with Apple');
+      if (error.code !== "ERR_REQUEST_CANCELED") {
+        console.error("Apple sign-in error:", error);
+        showAlert("Error", "Failed to sign in with Apple");
       }
     } finally {
       setSocialLoading(null);
@@ -218,13 +261,13 @@ export default function SignInScreen() {
   };
 
   const handleForgotPassword = () => {
-    navigation.navigate('ResetEmail');
+    navigation.navigate("ResetEmail");
   };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
         <ScrollView
@@ -253,7 +296,9 @@ export default function SignInScreen() {
           {/* Form */}
           <View style={styles.form}>
             {/* Email Input */}
-            <View style={[styles.inputWrapper, errors.email && styles.inputError]}>
+            <View
+              style={[styles.inputWrapper, errors.email && styles.inputError]}
+            >
               <TextInput
                 style={styles.input}
                 placeholder="Enter your email"
@@ -270,7 +315,12 @@ export default function SignInScreen() {
             )}
 
             {/* Password Input */}
-            <View style={[styles.inputWrapper, errors.password && styles.inputError]}>
+            <View
+              style={[
+                styles.inputWrapper,
+                errors.password && styles.inputError,
+              ]}
+            >
               <TextInput
                 style={styles.input}
                 placeholder="Password"
@@ -313,42 +363,49 @@ export default function SignInScreen() {
               <View style={styles.dividerLine} />
             </View>
 
+            {/* Continue with Apple - iOS only */}
+            {Platform.OS === "ios" && (
+              <TouchableOpacity
+                style={[styles.socialButton, styles.appleButton]}
+                onPress={handleAppleSignIn}
+                disabled={socialLoading !== null}
+              >
+                {socialLoading === "apple" ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Image
+                      source={darkMode ? require("../../../assets/apple_black.png") : require("../../../assets/apple_white.png")}
+                      style={styles.googleIcon}
+                    />
+                    <Text style={styles.appleButtonText}>
+                      Continue with Apple
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+
             {/* Continue with Google */}
             <TouchableOpacity
               style={styles.socialButton}
               onPress={handleGoogleSignIn}
               disabled={socialLoading !== null}
             >
-              {socialLoading === 'google' ? (
+              {socialLoading === "google" ? (
                 <ActivityIndicator color={COLORS.text} />
               ) : (
                 <>
                   <Image
-                    source={require('../../../assets/google.png')}
+                    source={require("../../../assets/google.png")}
                     style={styles.googleIcon}
                   />
-                  <Text style={styles.socialButtonText}>Continue with Google</Text>
+                  <Text style={styles.socialButtonText}>
+                    Continue with Google
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
-
-            {/* Continue with Apple - iOS only */}
-            {Platform.OS === 'ios' && (
-              <TouchableOpacity
-                style={styles.socialButton}
-                onPress={handleAppleSignIn}
-                disabled={socialLoading !== null}
-              >
-                {socialLoading === 'apple' ? (
-                  <ActivityIndicator color={COLORS.text} />
-                ) : (
-                  <>
-                    <AppleLogo size={22} color={COLORS.text} style={styles.socialIcon} />
-                    <Text style={styles.socialButtonText}>Continue with Apple</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -370,8 +427,8 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xxl,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: SPACING.md,
   },
   backButton: {
@@ -380,18 +437,18 @@ const styles = StyleSheet.create({
   titleContainer: {
     marginTop: SPACING.xl,
     marginBottom: SPACING.xxl,
-    alignItems: 'center',
+    alignItems: "center",
   },
   title: {
     fontSize: FONT_SIZES.header,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: COLORS.text,
     marginBottom: SPACING.sm,
   },
   subtitle: {
     fontSize: FONT_SIZES.lg,
     color: COLORS.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
   },
   form: {
     flex: 1,
@@ -400,7 +457,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.backgroundSecondary,
     borderRadius: RADIUS.round,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: "transparent",
     marginBottom: SPACING.md,
   },
   inputError: {
@@ -420,19 +477,19 @@ const styles = StyleSheet.create({
     paddingLeft: SPACING.xl,
   },
   forgotPassword: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginBottom: SPACING.xl,
   },
   forgotPasswordText: {
     fontSize: FONT_SIZES.md,
     color: COLORS.primary,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   signInButton: {
     backgroundColor: COLORS.primary,
     borderRadius: RADIUS.round,
     paddingVertical: 18,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: SPACING.lg,
   },
   buttonDisabled: {
@@ -440,12 +497,12 @@ const styles = StyleSheet.create({
   },
   signInButtonText: {
     fontSize: FONT_SIZES.lg,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.textLight,
   },
   divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginVertical: SPACING.lg,
   },
   dividerLine: {
@@ -459,21 +516,29 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
   },
   socialButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 16,
     borderRadius: RADIUS.round,
     marginBottom: SPACING.md,
     backgroundColor: COLORS.backgroundSecondary,
+  },
+  appleButton: {
+    backgroundColor: "#000000",
   },
   socialIcon: {
     marginRight: SPACING.md,
   },
   socialButtonText: {
     fontSize: FONT_SIZES.lg,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.text,
+  },
+  appleButtonText: {
+    fontSize: FONT_SIZES.lg,
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
   googleIcon: {
     width: 22,

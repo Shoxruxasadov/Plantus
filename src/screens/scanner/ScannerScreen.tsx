@@ -38,6 +38,7 @@ import { ScannerMode, identifyPlant } from '../../services/api';
 import { DARK_COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
 import { useAppStore } from '../../store/appStore';
 import { createSnap } from '../../services/supabase';
+import { triggerHaptic } from '../../utils/helpers';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'Scanner'>;
@@ -55,7 +56,7 @@ export default function ScannerScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const insets = useSafeAreaInsets();
-  const { userCollection } = useAppStore();
+  const { userCollection, vibration } = useAppStore();
   const theme = DARK_COLORS; // Scanner faqat dark mode
 
   const cameraRef = useRef<CameraView>(null);
@@ -172,6 +173,7 @@ export default function ScannerScreen() {
 
   const handleCapture = async () => {
     if (!cameraRef.current) return;
+    triggerHaptic(vibration);
 
     try {
       setLoading(true);

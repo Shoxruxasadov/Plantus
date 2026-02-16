@@ -18,6 +18,7 @@ import { ArrowLeft, CaretRight, CheckCircle } from 'phosphor-react-native';
 import { RootStackParamList } from '../../types';
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
 import { useTheme } from '../../hooks';
+import { useAppStore } from '../../store/appStore';
 import { updateGardenPlant, getGardenPlantById } from '../../services/supabase';
 import {
   scheduleNotification,
@@ -248,6 +249,7 @@ export default function CarePlanDetailScreen() {
   const route = useRoute<RouteProps>();
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { notifications } = useAppStore();
 
   const { plantName, careKey, careLabel, careItem, plantId, isGarden } = route.params;
 
@@ -299,8 +301,9 @@ export default function CarePlanDetailScreen() {
     setNotifyVisible(false);
   };
 
-  // ---- Schedule notification ----
+  // ---- Schedule notification (faqat App Settings → Notifications yoqilganda) ----
   const scheduleCareNotification = async (plantNm: string, key: string, rep: string, cr: any, time: Date, pId: string) => {
+    if (!notifications) return null;
     const hasPerms = await requestNotificationPermissions();
     if (!hasPerms) { Alert.alert('Permission required', 'Please enable notifications in Settings.'); return null; }
     if (rep === 'NotSet') return null;

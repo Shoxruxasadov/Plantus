@@ -72,7 +72,7 @@ export default function PersonalScreen() {
 
       {/* Form */}
       <View style={styles.form}>
-        <View style={[styles.inputGroup, { backgroundColor: theme.backgroundSecondary }]}>
+        <View style={[styles.inputGroup]}>
           <Text style={[styles.label, { color: theme.text }]}>Full Name</Text>
           <TextInput
             style={[styles.input, { backgroundColor: theme.backgroundTertiary, color: theme.text }]}

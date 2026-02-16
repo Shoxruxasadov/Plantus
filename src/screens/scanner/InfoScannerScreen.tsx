@@ -5,173 +5,64 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Image,
+  Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  ArrowLeft,
-  Leaf,
-  Sun,
-  ArrowsOut,
-  Camera,
-  MagnifyingGlass,
-  Palette,
-  Bug,
-  Stack,
-  FirstAid,
-  Lightbulb,
-} from 'phosphor-react-native';
 
-import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
-import { useTheme } from '../../hooks';
+import { COLORS, DARK_COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
 
-interface TipItem {
-  icon: React.ComponentType<{ size?: number; color?: string }>;
-  title: string;
-  description: string;
-}
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const GOOD_SIZE = Math.min(SCREEN_WIDTH - SPACING.xl * 2, 240);
+const BAD_SIZE = (SCREEN_WIDTH - SPACING.xl * 2 - SPACING.lg * 2) / 3;
 
-const identifyTips: TipItem[] = [
-  {
-    icon: Sun,
-    title: 'Good Lighting',
-    description: 'Take photos in bright, natural light for best results',
-  },
-  {
-    icon: Leaf,
-    title: 'Focus on Leaves',
-    description: 'Include clear shots of leaves, flowers, or fruits',
-  },
-  {
-    icon: ArrowsOut,
-    title: 'Fill the Frame',
-    description: 'Get close enough to show plant details clearly',
-  },
-  {
-    icon: Camera,
-    title: 'Multiple Angles',
-    description: 'Try different angles if first attempt fails',
-  },
+const goodImage = require('../../../assets/images/plant_tip1.png');
+const badImages = [
+  require('../../../assets/images/plant_tip2.png'),
+  require('../../../assets/images/plant_tip3.png'),
+  require('../../../assets/images/plant_tip4.png'),
 ];
-
-const diagnoseTips: TipItem[] = [
-  {
-    icon: MagnifyingGlass,
-    title: 'Focus on Problems',
-    description: 'Capture the affected areas clearly',
-  },
-  {
-    icon: Palette,
-    title: 'Show Discoloration',
-    description: 'Include any spots, yellowing, or browning',
-  },
-  {
-    icon: Bug,
-    title: 'Check for Pests',
-    description: 'Look under leaves for insects or eggs',
-  },
-  {
-    icon: Stack,
-    title: 'Overall View',
-    description: 'Include a photo of the whole plant too',
-  },
-];
+const badLabels = ['Multi-species', 'Too Close', 'Too Far'];
 
 export default function InfoScannerScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { theme, isDark } = useTheme();
-
-  const sectionIdentifyBg = isDark ? 'rgba(31, 200, 92, 0.2)' : '#E8F5E9';
-  const sectionDiagnoseBg = isDark ? 'rgba(255, 152, 0, 0.2)' : '#FFF3E0';
-  const proTipCardBg = isDark ? theme.backgroundSecondary : '#FFFDE7';
-  const proTipBorder = isDark ? theme.border : '#FFF59D';
-  const proTipTitleColor = isDark ? '#FFC107' : '#F57F17';
-  const proTipTextColor = isDark ? theme.textSecondary : '#5D4037';
-
-  const renderTip = (tip: TipItem, index: number) => {
-    const IconComponent = tip.icon;
-    return (
-      <View key={index} style={styles.tipItem}>
-        <View style={[styles.tipIcon, { backgroundColor: theme.backgroundSecondary}]}>
-          <IconComponent size={22} color={COLORS.primary} />
-        </View>
-        <View style={styles.tipContent}>
-          <Text style={[styles.tipTitle, { color: theme.text }]}>{tip.title}</Text>
-          <Text style={[styles.tipDescription, { color: theme.textSecondary }]}>{tip.description}</Text>
-        </View>
-      </View>
-    );
-  };
+  const theme = DARK_COLORS;
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundSecondary, paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <ArrowLeft size={24} color={theme.text} />
-        </TouchableOpacity>
-        <Text style={[styles.title, { color: theme.text }]}>Scanning Tips</Text>
-        <View style={styles.placeholder} />
+    <View style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top }]}>
+      <View
+        style={styles.scrollView}
+      >
+        <Text style={styles.mainTitle}>Quick Scan Guide</Text>
+        <Text style={styles.subtitle}>
+          Take a clean shot and we'll identify your plant in seconds
+        </Text>
+
+        <View style={styles.goodWrap}>
+          <Image source={goodImage} style={styles.goodImage} resizeMode="contain" />
+        </View>
+
+        <View style={styles.badRow}>
+          {badImages.map((img, index) => (
+            <View key={index} style={styles.badItem}>
+              <Image source={img} style={styles.badImage} resizeMode="contain" />
+              <Text style={styles.badLabel}>{badLabels[index]}</Text>
+            </View>
+          ))}
+        </View>
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Identify Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={[styles.sectionIcon, { backgroundColor: sectionIdentifyBg }]}>
-              <Leaf size={22} color={COLORS.primary} />
-            </View>
-            <View>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Plant Identification</Text>
-              <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
-                Tips for identifying unknown plants
-              </Text>
-            </View>
-          </View>
-          <View style={[styles.tipsContainer, { backgroundColor: theme.card }]}>
-            {identifyTips.map((tip, index) => renderTip(tip, index))}
-          </View>
-        </View>
-
-        {/* Diagnose Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={[styles.sectionIcon, { backgroundColor: sectionDiagnoseBg }]}>
-              <FirstAid size={22} color="#FF9800" />
-            </View>
-            <View>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Disease Diagnosis</Text>
-              <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
-                Tips for diagnosing plant issues
-              </Text>
-            </View>
-          </View>
-          <View style={[styles.tipsContainer, { backgroundColor: theme.card }]}>
-            {diagnoseTips.map((tip, index) => renderTip(tip, index))}
-          </View>
-        </View>
-
-        {/* Pro Tip */}
-        <View style={[styles.proTipCard, { backgroundColor: proTipCardBg, borderColor: proTipBorder }]}>
-          <View style={styles.proTipHeader}>
-            <Lightbulb size={22} color="#FFC107" />
-            <Text style={[styles.proTipTitle, { color: proTipTitleColor }]}>Pro Tip</Text>
-          </View>
-          <Text style={[styles.proTipText, { color: proTipTextColor }]}>
-            For the most accurate results, take photos during daylight hours and
-            avoid using flash when possible. Natural lighting helps our AI
-            identify plant features more accurately.
-          </Text>
-        </View>
-      </ScrollView>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.md }]}>
+        <TouchableOpacity
+          style={styles.doneButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.doneButtonText}>Done</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -180,100 +71,76 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-  },
-  backButton: {
-    padding: SPACING.sm,
-  },
-  title: {
-    fontSize: FONT_SIZES.xl,
-    fontWeight: '700',
-  },
-  placeholder: {
-    width: 40,
-  },
   scrollView: {
     flex: 1,
+    paddingHorizontal: SPACING.xl,
+    paddingTop: SPACING.lg,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContent: {
-    padding: SPACING.xl,
-    paddingBottom: SPACING.xxxl,
+    paddingHorizontal: SPACING.xl,
+    paddingTop: SPACING.lg,
   },
-  section: {
+  mainTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: SPACING.sm,
+  },
+  subtitle: {
+    fontSize: FONT_SIZES.md,
+    color: DARK_COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: SPACING.xxl,
+    lineHeight: 22,
+  },
+  goodWrap: {
+    alignItems: 'center',
     marginBottom: SPACING.xxl,
   },
-  sectionHeader: {
+  goodImage: {
+    width: GOOD_SIZE,
+    height: GOOD_SIZE,
+  },
+  badRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SPACING.lg,
+    justifyContent: 'space-between',
+    marginBottom: SPACING.xxl,
   },
-  sectionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: SPACING.md,
-  },
-  sectionTitle: {
-    fontSize: FONT_SIZES.lg,
-    fontWeight: '600',
-  },
-  sectionSubtitle: {
-    fontSize: FONT_SIZES.sm,
-    marginTop: 2,
-  },
-  tipsContainer: {
-    borderRadius: RADIUS.lg,
-    padding: SPACING.sm,
-  },
-  tipItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: SPACING.md,
-  },
-  tipIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: SPACING.md,
-  },
-  tipContent: {
+  badItem: {
     flex: 1,
-  },
-  tipTitle: {
-    fontSize: FONT_SIZES.md,
-    fontWeight: '600',
-  },
-  tipDescription: {
-    fontSize: FONT_SIZES.sm,
-    marginTop: 2,
-    lineHeight: 18,
-  },
-  proTipCard: {
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-    borderWidth: 1,
-  },
-  proTipHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: SPACING.md,
+    marginHorizontal: SPACING.xs,
   },
-  proTipTitle: {
+  badImage: {
+    width: BAD_SIZE,
+    height: BAD_SIZE,
+    marginBottom: SPACING.sm,
+  },
+  badLabel: {
+    fontSize: FONT_SIZES.sm,
+    color: DARK_COLORS.textSecondary,
+    textAlign: 'center',
+  },
+  footer: {
+    paddingHorizontal: SPACING.xl,
+    paddingTop: SPACING.md,
+    backgroundColor: DARK_COLORS.background,
+  },
+  doneButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.lg,
+    paddingVertical: SPACING.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doneButtonText: {
     fontSize: FONT_SIZES.lg,
-    fontWeight: '600',
-    marginLeft: SPACING.sm,
-  },
-  proTipText: {
-    fontSize: FONT_SIZES.md,
-    lineHeight: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

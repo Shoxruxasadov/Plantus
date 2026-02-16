@@ -9,8 +9,8 @@
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash5.gif",
-      "resizeMode": "contain",
-      "backgroundColor": "#1B5E20"
+      "resizeMode": "cover",
+      "backgroundColor": "#121212"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -37,7 +37,7 @@
     },
     "web": {
       "bundler": "metro",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/app_launcher_icon.png"
     },
     "plugins": [
       "expo-font",
@@ -45,6 +45,12 @@
       "expo-camera",
       "expo-image-picker",
       "expo-apple-authentication",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.293762405649-t6hjlffj5oofs7r6p8qqgbp3ftqgukkb"
+        }
+      ],
       [
         "expo-notifications",
         {

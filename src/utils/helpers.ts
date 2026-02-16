@@ -1,5 +1,6 @@
 import { Alert, Linking, Platform, Share, Vibration } from 'react-native';
 import * as Location from 'expo-location';
+import * as Haptics from 'expo-haptics';
 
 // Format date helpers
 export const formatDate = (date: Date | string): string => {
@@ -239,7 +240,14 @@ export const shareContent = async (
   }
 };
 
-// Haptic feedback
+// Haptic feedback (App Settings → Vibration ga bog‘liq)
+export const triggerHaptic = async (vibrationEnabled: boolean) => {
+  if (!vibrationEnabled) return;
+  try {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  } catch (_) {}
+};
+
 export const vibrate = (pattern: number | number[] = 100) => {
   if (typeof pattern === 'number') {
     Vibration.vibrate(pattern);

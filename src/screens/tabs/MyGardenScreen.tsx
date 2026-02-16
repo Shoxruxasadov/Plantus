@@ -15,6 +15,8 @@ import {
   Animated,
   LayoutChangeEvent,
   Dimensions,
+  Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -115,23 +117,22 @@ export default function MyGardenScreen() {
   const [createSpaceVisible, setCreateSpaceVisible] = useState(false);
   const [spaceName, setSpaceName] = useState('');
   const [creating, setCreating] = useState(false);
-  const CREATE_SHEET_Y = Dimensions.get('window').height;
   const createSpaceOverlay = useRef(new Animated.Value(0)).current;
-  const createSpaceSheetY = useRef(new Animated.Value(CREATE_SHEET_Y)).current;
+  const createSpaceScale = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (createSpaceVisible) {
       createSpaceOverlay.setValue(0);
-      createSpaceSheetY.setValue(CREATE_SHEET_Y);
+      createSpaceScale.setValue(0);
       Animated.parallel([
         Animated.timing(createSpaceOverlay, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.spring(createSpaceSheetY, { toValue: 0, useNativeDriver: true, tension: 65, friction: 11 }),
+        Animated.spring(createSpaceScale, { toValue: 1, useNativeDriver: true, tension: 65, friction: 11 }),
       ]).start();
     }
   }, [createSpaceVisible]);
   const closeCreateSpaceSheet = useCallback(() => {
     Animated.parallel([
       Animated.timing(createSpaceOverlay, { toValue: 0, duration: 200, useNativeDriver: true }),
-      Animated.timing(createSpaceSheetY, { toValue: CREATE_SHEET_Y, duration: 250, useNativeDriver: true }),
+      Animated.timing(createSpaceScale, { toValue: 0, duration: 250, useNativeDriver: true }),
     ]).start(() => {
       setCreateSpaceVisible(false);
       setSpaceName('');
@@ -141,10 +142,50 @@ export default function MyGardenScreen() {
   // Options modal
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const OPTIONS_SHEET_Y = Dimensions.get('window').height;
+  const optionsOverlay = useRef(new Animated.Value(0)).current;
+  const optionsSheetY = useRef(new Animated.Value(OPTIONS_SHEET_Y)).current;
+  useEffect(() => {
+    if (optionsVisible) {
+      optionsOverlay.setValue(0);
+      optionsSheetY.setValue(OPTIONS_SHEET_Y);
+      Animated.parallel([
+        Animated.timing(optionsOverlay, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.spring(optionsSheetY, { toValue: 0, useNativeDriver: true, tension: 65, friction: 11 }),
+      ]).start();
+    }
+  }, [optionsVisible]);
+  const closeOptionsSheet = useCallback((afterClose?: () => void) => {
+    Animated.parallel([
+      Animated.timing(optionsOverlay, { toValue: 0, duration: 200, useNativeDriver: true }),
+      Animated.timing(optionsSheetY, { toValue: OPTIONS_SHEET_Y, duration: 250, useNativeDriver: true }),
+    ]).start(() => {
+      setOptionsVisible(false);
+      afterClose?.();
+    });
+  }, []);
 
   // Edit Name modal
   const [editVisible, setEditVisible] = useState(false);
   const [editName, setEditName] = useState('');
+  const editOverlay = useRef(new Animated.Value(0)).current;
+  const editScale = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (editVisible) {
+      editOverlay.setValue(0);
+      editScale.setValue(0);
+      Animated.parallel([
+        Animated.timing(editOverlay, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.spring(editScale, { toValue: 1, useNativeDriver: true, tension: 65, friction: 11 }),
+      ]).start();
+    }
+  }, [editVisible]);
+  const closeEditSheet = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(editOverlay, { toValue: 0, duration: 200, useNativeDriver: true }),
+      Animated.timing(editScale, { toValue: 0, duration: 250, useNativeDriver: true }),
+    ]).start(() => setEditVisible(false));
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -393,8 +434,7 @@ export default function MyGardenScreen() {
   const handleEditName = () => {
     if (!selectedGroup) return;
     setEditName(selectedGroup.name);
-    setOptionsVisible(false);
-    setTimeout(() => setEditVisible(true), 300);
+    closeOptionsSheet(() => setEditVisible(true));
   };
 
   const handleEditNameSubmit = async () => {
@@ -407,12 +447,12 @@ export default function MyGardenScreen() {
         );
       }
     } catch (_e) {}
-    setEditVisible(false);
+    closeEditSheet();
   };
 
   const handleDeleteGroup = () => {
     if (!selectedGroup) return;
-    setOptionsVisible(false);
+    closeOptionsSheet();
 
     Alert.alert(
       'Delete Space',
@@ -536,9 +576,11 @@ export default function MyGardenScreen() {
   // Empty state for My Garden
   const renderGardenEmpty = () => (
     <View style={styles.emptyState}>
-      <View style={styles.emptyIconContainer}>
-        <Leaf size={80} color={COLORS.primary} />
-      </View>
+       <Image
+        source={require('../../../assets/cbimage.png')}
+        style={styles.snapHistoryEmptyImage}
+        resizeMode="contain"
+      />
       <Text style={[styles.emptyTitle, { color: theme.text }]}>You didn't added any plant</Text>
       <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>
         Create space and add your plants where{'\n'}do you want
@@ -547,6 +589,7 @@ export default function MyGardenScreen() {
         <Plus size={20} color={COLORS.textLight} />
         <Text style={styles.primaryBtnText}>Create a Space</Text>
       </TouchableOpacity>
+      <View style={{height: 68}}></View>
     </View>
   );
 
@@ -629,18 +672,6 @@ export default function MyGardenScreen() {
         <CaretRight size={20} color={theme.textTertiary} />
       </TouchableOpacity>
     </Swipeable>
-  );
-
-  // Empty state for selected group (no plants)
-  const renderGroupEmpty = () => (
-    <View style={styles.groupEmptyState}>
-      <Leaf size={48} color={theme.textTertiary} />
-      <Text style={[styles.groupEmptyText, { color: theme.textSecondary }]}>No plants in this space</Text>
-      <TouchableOpacity style={styles.addPlantBtn} onPress={handleAddPlant}>
-        <Plus size={16} color={COLORS.primary} />
-        <Text style={styles.addPlantBtnText}>Add Plant</Text>
-      </TouchableOpacity>
-    </View>
   );
 
   // Garden content
@@ -758,8 +789,14 @@ export default function MyGardenScreen() {
     if (reminderPlants.length === 0) {
       return (
         <View style={styles.emptyState}>
+             <Image
+        source={require('../../../assets/reminder.png')}
+        style={styles.snapHistoryEmptyImage}
+        resizeMode="contain"
+      />
           <Text style={[styles.emptyTitle, { color: theme.text }]}>No care reminders yet</Text>
-          <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>Add plants to your garden to see care reminders here.</Text>
+          <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>Add plants to your garden to see care{'\n'}reminders here.</Text>
+          <View style={{height: 40}}></View>
         </View>
       );
     }
@@ -889,54 +926,61 @@ export default function MyGardenScreen() {
         <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={closeCreateSpaceSheet}>
           <Animated.View style={[styles.sheetOverlay, { opacity: createSpaceOverlay }]} />
         </TouchableOpacity>
-        <Animated.View style={[styles.sheetWrapper, { transform: [{ translateY: createSpaceSheetY }] }]} pointerEvents="box-none">
-          <View style={[styles.sheet, { backgroundColor: theme.background }]} onStartShouldSetResponder={() => true}>
-            <View style={[styles.sheetHandle, { backgroundColor: theme.border }]} />
-            <Text style={[styles.sheetTitle, { color: theme.text }]}>Create Space</Text>
+        <View style={styles.sheetWrapperCenter} pointerEvents="box-none">
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.sheetKeyboardAvoid}
+            keyboardVerticalOffset={40}
+          >
+            <Animated.View style={[styles.sheetCenter, { transform: [{ scale: createSpaceScale }] }]}>
+              <View style={[styles.sheet, styles.sheetCenterCard, { backgroundColor: theme.background, paddingBottom: 20 }]} onStartShouldSetResponder={() => true}>
+                <View style={[styles.sheetHandle, { backgroundColor: 'transparent', marginBottom: 0, height: 8 }]} />
+                <Text style={[styles.sheetTitle, { color: theme.text }]}>Create Space</Text>
 
-            <Text style={[styles.inputLabel, { color: theme.text }]}>Name of Space</Text>
-            <TextInput
-              style={[styles.sheetInput, { backgroundColor: theme.backgroundSecondary, color: theme.text }, spaceName.length > 0 && styles.sheetInputActive]}
-              placeholder="ex: My Office"
-              placeholderTextColor={theme.textTertiary}
-              value={spaceName}
-              onChangeText={setSpaceName}
-              autoFocus
-            />
+                <Text style={[styles.inputLabel, { color: theme.text }]}>Name of Space</Text>
+                <TextInput
+                  style={[styles.sheetInput, { backgroundColor: theme.backgroundSecondary, color: theme.text }, spaceName.length > 0 && styles.sheetInputActive]}
+                  placeholder="ex: My Office"
+                  placeholderTextColor={theme.textTertiary}
+                  value={spaceName}
+                  onChangeText={setSpaceName}
+                  autoFocus
+                />
 
-            <View style={styles.infoRow}>
-              <Info size={18} color={theme.textTertiary} />
-              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-                Creating space is effective way of organizing your plants
-              </Text>
-            </View>
+                <View style={styles.infoRow}>
+                  <Info size={18} color={theme.textTertiary} />
+                  <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+                    Creating space is effective way of organizing your plants
+                  </Text>
+                </View>
 
-            <TouchableOpacity
-              style={[styles.sheetBtn, (!spaceName.trim() || creating) && styles.sheetBtnDisabled]}
-              onPress={handleCreateSpaceSubmit}
-              disabled={!spaceName.trim() || creating}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.sheetBtnText}>
-                {creating ? 'Creating...' : 'Create Space'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
+                <TouchableOpacity
+                  style={[styles.sheetBtn, (!spaceName.trim() || creating) && styles.sheetBtnDisabled]}
+                  onPress={handleCreateSpaceSubmit}
+                  disabled={!spaceName.trim() || creating}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.sheetBtnText}>
+                    {creating ? 'Creating...' : 'Create Space'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          </KeyboardAvoidingView>
+        </View>
       </Modal>
 
       {/* Options Modal */}
       <Modal
         visible={optionsVisible}
-        animationType="slide"
+        animationType="none"
         transparent
-        onRequestClose={() => setOptionsVisible(false)}
+        onRequestClose={() => closeOptionsSheet()}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setOptionsVisible(false)}
-        >
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => closeOptionsSheet()}>
+          <Animated.View style={[styles.sheetOverlay, { opacity: optionsOverlay }]} />
+        </TouchableOpacity>
+        <Animated.View style={[styles.sheetWrapper, { transform: [{ translateY: optionsSheetY }] }]} pointerEvents="box-none">
           <View style={[styles.sheet, { backgroundColor: theme.background }]} onStartShouldSetResponder={() => true}>
             <View style={[styles.sheetHandle, { backgroundColor: theme.border }]} />
             <Text style={[styles.sheetTitle, { color: theme.text }]}>Options</Text>
@@ -947,53 +991,61 @@ export default function MyGardenScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.optionRow, { borderBottomColor: theme.borderLight }]}
+              style={[styles.optionRow, { borderBottomColor: theme.borderLight }, !selectedGroup?.deletemode && styles.optionRowDisabled]}
               onPress={handleDeleteGroup}
+              disabled={!selectedGroup?.deletemode}
               activeOpacity={0.7}
             >
-              <Trash size={22} color={COLORS.error} />
-              <Text style={[styles.optionText, { color: COLORS.error }]}>Delete</Text>
+              <Trash size={22} color={selectedGroup?.deletemode ? COLORS.error : theme.textTertiary} />
+              <Text style={[styles.optionText, { color: selectedGroup?.deletemode ? COLORS.error : theme.textTertiary }]}>Delete</Text>
             </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </Animated.View>
       </Modal>
 
       {/* Edit Name Modal */}
       <Modal
         visible={editVisible}
-        animationType="slide"
+        animationType="none"
         transparent
-        onRequestClose={() => setEditVisible(false)}
+        onRequestClose={closeEditSheet}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setEditVisible(false)}
-        >
-          <View style={styles.sheet} onStartShouldSetResponder={() => true}>
-            <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>Edit Name</Text>
-
-            <Text style={styles.inputLabel}>Name of Space</Text>
-            <TextInput
-              style={[styles.sheetInput, editName.length > 0 && styles.sheetInputActive]}
-              placeholder="Space name"
-              placeholderTextColor={COLORS.textTertiary}
-              value={editName}
-              onChangeText={setEditName}
-              autoFocus
-            />
-
-            <TouchableOpacity
-              style={[styles.sheetBtn, !editName.trim() && styles.sheetBtnDisabled]}
-              onPress={handleEditNameSubmit}
-              disabled={!editName.trim()}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.sheetBtnText}>Save</Text>
-            </TouchableOpacity>
-          </View>
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={closeEditSheet}>
+          <Animated.View style={[styles.sheetOverlay, { opacity: editOverlay }]} />
         </TouchableOpacity>
+        <View style={styles.sheetWrapperCenter} pointerEvents="box-none">
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.sheetKeyboardAvoid}
+            keyboardVerticalOffset={40}
+          >
+            <Animated.View style={[styles.sheetCenter, { transform: [{ scale: editScale }] }]}>
+              <View style={[styles.sheet, styles.sheetCenterCard, { backgroundColor: theme.background, paddingBottom: 20 }]} onStartShouldSetResponder={() => true}>
+                <View style={[styles.sheetHandle, { backgroundColor:  'transparent', marginBottom: 0, height: 8 }]} />
+                <Text style={[styles.sheetTitle, { color: theme.text }]}>Edit Name</Text>
+
+                <Text style={[styles.inputLabel, { color: theme.text }]}>Name of Space</Text>
+                <TextInput
+                  style={[styles.sheetInput, { backgroundColor: theme.backgroundSecondary, color: theme.text }, editName.length > 0 && styles.sheetInputActive]}
+                  placeholder="Space name"
+                  placeholderTextColor={theme.textTertiary}
+                  value={editName}
+                  onChangeText={setEditName}
+                  autoFocus
+                />
+
+                <TouchableOpacity
+                  style={[styles.sheetBtn, !editName.trim() && styles.sheetBtnDisabled]}
+                  onPress={handleEditNameSubmit}
+                  disabled={!editName.trim()}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.sheetBtnText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          </KeyboardAvoidingView>
+        </View>
       </Modal>
       <View style={{ height: 95 }}></View>
     </View>
@@ -1054,6 +1106,7 @@ const styles = StyleSheet.create({
   },
   // Garden layout
   gardenContainer: {
+    paddingTop: 24,
     flex: 1,
   },
   gardenScrollContent: {
@@ -1173,10 +1226,11 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xxxl + 80,
   },
   snapListContent: {
-    paddingTop: SPACING.sm,
-    paddingBottom: SPACING.xxxl + 80,
+    paddingTop: 12,
+    paddingBottom: SPACING.md + 80,
   },
   emptyListContent: {
+    paddingTop: 24,
     flex: 1,
   },
   // Plant card
@@ -1296,6 +1350,28 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'flex-end',
   },
+  sheetWrapperCenter: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sheetKeyboardAvoid: {
+    width: '100%',
+    maxWidth: 400,
+    paddingHorizontal: SPACING.lg,
+  },
+  sheetCenter: {
+    width: '100%',
+  },
+  sheetCenterCard: {
+    borderTopLeftRadius: RADIUS.xxl,
+    borderTopRightRadius: RADIUS.xxl,
+    borderRadius: RADIUS.xxl,
+  },
   sheet: {
     backgroundColor: COLORS.background,
     borderTopLeftRadius: RADIUS.xxl,
@@ -1371,6 +1447,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.borderLight,
     gap: SPACING.md,
+  },
+  optionRowDisabled: {
+    opacity: 0.6,
   },
   optionText: {
     fontSize: FONT_SIZES.lg,

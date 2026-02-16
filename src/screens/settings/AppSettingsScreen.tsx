@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   Modal,
   FlatList,
   Platform,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,6 +17,7 @@ import { ArrowLeft, CaretRight, CheckCircle } from 'phosphor-react-native';
 
 import { COLORS, DARK_COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
 import { useAppStore } from '../../store/appStore';
+import { cancelAllNotifications } from '../../services/notifications';
 
 const languages = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -51,13 +54,54 @@ export default function AppSettingsScreen() {
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('en');
 
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const sheetTranslateY = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+
+  useEffect(() => {
+    if (!languageModalVisible) return;
+    overlayOpacity.setValue(0);
+    sheetTranslateY.setValue(Dimensions.get('window').height);
+    Animated.parallel([
+      Animated.timing(overlayOpacity, {
+        toValue: 1,
+        duration: 280,
+        useNativeDriver: true,
+      }),
+      Animated.timing(sheetTranslateY, {
+        toValue: 0,
+        duration: 320,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [languageModalVisible]);
+
+  const closeLanguageModal = (callback?: () => void) => {
+    Animated.parallel([
+      Animated.timing(overlayOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(sheetTranslateY, {
+        toValue: Dimensions.get('window').height,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (finished) {
+        setLanguageModalVisible(false);
+        callback?.();
+      }
+    });
+  };
+
   const getSelectedLanguageName = () => {
     return languages.find((l) => l.code === selectedLanguage)?.name || 'English';
   };
 
   const handleSelectLanguage = (code: string) => {
     setSelectedLanguage(code);
-    setLanguageModalVisible(false);
+    closeLanguageModal();
   };
 
   // iOS: native system Switch (no custom colors). Android: optional track/thumb for visibility.
@@ -68,8 +112,13 @@ export default function AppSettingsScreen() {
         thumbColor: '#FFFFFF',
       };
 
+  const handleNotificationsChange = (value: boolean) => {
+    setNotifications(value);
+    if (!value) cancelAllNotifications();
+  };
+
   const settingsRows = [
-    { type: 'switch' as const, label: 'Notifications', value: notifications, onValueChange: setNotifications },
+    { type: 'switch' as const, label: 'Notifications', value: notifications, onValueChange: handleNotificationsChange },
     { type: 'switch' as const, label: 'Vibration', value: vibration, onValueChange: setVibration },
     { type: 'switch' as const, label: 'Dark mode', value: darkMode, onValueChange: setDarkMode },
     { type: 'link' as const, label: 'Language', onPress: () => setLanguageModalVisible(true), value: getSelectedLanguageName() },
@@ -131,19 +180,30 @@ export default function AppSettingsScreen() {
         ))}
       </View>
 
-      {/* Language Modal */}
+      {/* Language Modal: orqa fon fade, sheet pastdan yuqoriga slide */}
       <Modal
         visible={languageModalVisible}
-        animationType="slide"
+        animationType="none"
         transparent
-        onRequestClose={() => setLanguageModalVisible(false)}
+        onRequestClose={() => closeLanguageModal()}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setLanguageModalVisible(false)}
-        >
-          <View style={[styles.languageSheet, { backgroundColor: theme.background }]}>
+        <View style={styles.modalOverlayTouch}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => closeLanguageModal()}
+          >
+            <Animated.View
+              style={[styles.modalOverlay, { opacity: overlayOpacity }]}
+              pointerEvents="none"
+            />
+          </TouchableOpacity>
+          <Animated.View
+            style={[
+              styles.languageSheet,
+              { backgroundColor: theme.background, transform: [{ translateY: sheetTranslateY }] },
+            ]}
+          >
             <View style={[styles.languageHandle, { backgroundColor: theme.border }]} />
             <Text style={[styles.languageTitle, { color: theme.text }]}>Language</Text>
 
@@ -167,8 +227,8 @@ export default function AppSettingsScreen() {
               )}
               contentContainerStyle={styles.languageList}
             />
-          </View>
-        </TouchableOpacity>
+          </Animated.View>
+        </View>
       </Modal>
     </View>
   );
@@ -224,10 +284,13 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   // Language Modal
-  modalOverlay: {
+  modalOverlayTouch: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     justifyContent: 'flex-end',
+  },
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.22)',
   },
   languageSheet: {
     borderTopLeftRadius: RADIUS.xxl,
@@ -272,10 +335,11 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   languageRadio: {
-    width: 24,
-    height: 24,
+    width: 20,
+    height: 20,
     borderRadius: 12,
     borderWidth: 2,
     borderColor: COLORS.borderLight,
+    marginRight: 2,
   },
 });

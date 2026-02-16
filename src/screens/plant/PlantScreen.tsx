@@ -120,7 +120,7 @@ export default function PlantScreen() {
   const route = useRoute<RouteProps>();
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
-  const { userCollection, isLoggedIn } = useAppStore();
+  const { userCollection, isLoggedIn, notifications } = useAppStore();
 
   const { plantId, isGarden, snap } = route.params || {};
   const [plant, setPlant] = useState<any>(snap || null);
@@ -440,7 +440,7 @@ export default function PlantScreen() {
       if (result.data) {
         const gardenId = String(result.data.id);
         const cp = safeParse(cpStr);
-        if (cp) {
+        if (cp && notifications) {
           const notifResult = await scheduleCareplanNotificationsForPlant(plant.name ?? 'Plant', gardenId, cp).catch(() => ({ ok: false, error: 'Reminders could not be set up' }));
           if (notifResult && !notifResult.ok) {
             setSnackMessage(notifResult.error ?? 'Reminders could not be set up');
@@ -455,6 +455,8 @@ export default function PlantScreen() {
           const { error: groupErr } = await addPlantToGroup(groupId, newId, currentIds);
           if (groupErr) console.warn('[Plant] addPlantToGroup failed:', groupErr);
         }
+        // UI yangilansin – qayta "Add to Garden" ko‘rinmasin, "See your Garden" chiqsin
+        setGardenPlant(result.data);
       }
 
       Alert.alert('Success', 'Plant added to your garden!', [
@@ -706,8 +708,8 @@ export default function PlantScreen() {
           <View style={[styles.contentArea, { backgroundColor: theme.backgroundSecondary }]}>
             {/* Help card */}
             <TouchableOpacity style={[styles.helpCard, { backgroundColor: theme.card }]} onPress={() => navigation.navigate('Chat', {})} activeOpacity={0.8}>
-              <View style={[styles.helpIcon, { backgroundColor: theme.backgroundTertiary }]}>
-                <Sparkle size={28} color={theme.primary} weight="fill" />
+              <View style={[styles.helpIcon, { backgroundColor: "transparent" }]}>
+                <Sparkle size={35} color={theme.primary} weight="fill" />
               </View>
               <View style={styles.helpInfo}>
                 <Text style={[styles.helpTitle, { color: theme.text }]}>Need more help?</Text>
@@ -745,7 +747,7 @@ export default function PlantScreen() {
                         <TouchableOpacity style={[styles.overviewRow, { backgroundColor: theme.card }]} activeOpacity={0.7} onPress={() => setSelectedOverview(entry)}>
                           <Image
                             source={OVERVIEW_ICONS[entry.key]}
-                            style={[styles.overviewIcon, { backgroundColor: theme.backgroundTertiary }]}
+                            style={[styles.overviewIcon, { backgroundColor: theme.cardElevated }]}
                             resizeMode="contain"
                           />
                           <View style={styles.overviewInfo}>
@@ -811,7 +813,7 @@ export default function PlantScreen() {
                             });
                           }}
                         >
-                          <View style={[styles.careIconWrap, { backgroundColor: theme.backgroundTertiary }]}>
+                          <View style={[styles.careIconWrap, { backgroundColor: theme.cardElevated }]}>
                             <Image source={CARE_ICONS[key]} style={styles.careIconImg} resizeMode="contain" />
                           </View>
                           <Text style={[styles.careLabel, { color: theme.text }]}>{label}</Text>
@@ -835,7 +837,7 @@ export default function PlantScreen() {
                   {d.image ? (
                     <Image source={{ uri: d.image }} style={styles.diseaseImg} resizeMode="cover" />
                   ) : (
-                    <View style={[styles.diseaseImg, styles.diseaseImgPlaceholder, { backgroundColor: theme.backgroundTertiary }]}>
+                    <View style={[styles.diseaseImg, styles.diseaseImgPlaceholder, { backgroundColor: theme.backgroundSecondary }]}>
                       <Bug size={20} color={theme.textTertiary} />
                     </View>
                   )}
@@ -931,12 +933,12 @@ export default function PlantScreen() {
               )}
               {selectedDisease?.description ? <Text style={[styles.diseaseModalDesc, { color: theme.text }]}>{selectedDisease.description}</Text> : null}
               {(selectedDisease?.nagitive || selectedDisease?.negative) ? (
-                <View style={[styles.causeCard, { backgroundColor: theme.backgroundTertiary }]}>
+                <View style={[styles.causeCard, { backgroundColor: theme.cardElevated }]}>
                   <Text style={[styles.causeText, { color: theme.text }]}>{'\u26A0\uFE0F'} Cause: {selectedDisease.nagitive || selectedDisease.negative}</Text>
                 </View>
               ) : null}
               {selectedDisease?.fix ? (
-                <View style={[styles.fixCard, { backgroundColor: theme.backgroundTertiary }]}>
+                <View style={[styles.fixCard, { backgroundColor: theme.cardElevated }]}>
                   <Text style={[styles.fixText, { color: theme.text }]}>{'\u2B50'} Fix: {selectedDisease.fix}</Text>
                 </View>
               ) : null}
@@ -1000,8 +1002,8 @@ export default function PlantScreen() {
 
               {/* Negative / warning */}
               {selectedOverview?.item?.negative ? (
-                <View style={[styles.overviewModalWarning, { backgroundColor: theme.backgroundTertiary }]}>
-                  <Text style={[styles.overviewModalWarningText, { color: theme.warning }]}>
+                <View style={[styles.overviewModalWarning, { backgroundColor: theme.errorContainer }]}>
+                  <Text style={[styles.overviewModalWarningText, { color: theme.error }]}>
                     {'\u26A0\uFE0F'} {selectedOverview.item.negative}
                   </Text>
                 </View>
@@ -1111,11 +1113,11 @@ const styles = StyleSheet.create({
   contentArea: { backgroundColor: '#F8F8F8', paddingHorizontal: SPACING.lg, paddingTop: SPACING.md },
 
   // Help card
-  helpCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 20, padding: SPACING.lg, marginBottom: SPACING.xl },
+  helpCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 20, padding: SPACING.lg, marginBottom: SPACING.xl, paddingLeft: SPACING.md, paddingVertical: 12 },
   helpIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: '#E8F5E9', alignItems: 'center', justifyContent: 'center', marginRight: SPACING.md },
   helpInfo: { flex: 1 },
-  helpTitle: { fontSize: 20, fontWeight: '700', color: COLORS.text },
-  helpSubtitle: { fontSize: FONT_SIZES.md, color: COLORS.textSecondary, marginTop: 2 },
+  helpTitle: { fontSize: 20, fontWeight: '600', color: COLORS.text },
+  helpSubtitle: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
 
   // Section
   sectionTitle: { fontSize: FONT_SIZES.xl, fontWeight: '700', color: COLORS.text, marginBottom: SPACING.lg, marginTop: SPACING.md },
@@ -1138,8 +1140,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   overviewIcon: {
-    width: 52,
-    height: 52,
+    width:48,
+    height: 48,
     borderRadius: 14,
     marginRight: SPACING.md,
     backgroundColor: COLORS.backgroundSecondary,
@@ -1152,8 +1154,8 @@ const styles = StyleSheet.create({
   careContainer: { backgroundColor: '#fff', borderRadius: 20, padding: 14, gap: 14 },
   careDivider: { height: 1, backgroundColor: '#F0F0F0' },
   careRow: { flexDirection: 'row', alignItems: 'center', height: 44 },
-  careIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#F5F5F6', alignItems: 'center', justifyContent: 'center', marginRight: SPACING.md },
-  careIconImg: { width: 36, height: 36 },
+  careIconWrap: { width: 48, height: 48, borderRadius: 12, backgroundColor: '#F5F5F6', alignItems: 'center', justifyContent: 'center', marginRight: SPACING.md },
+  careIconImg: { width: 42, height: 42 },
   careLabel: { fontSize: FONT_SIZES.lg, fontWeight: '600', color: COLORS.text, flex: 1 },
   careRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   careRepeat: { fontSize: FONT_SIZES.md, color: COLORS.textSecondary },
@@ -1328,3 +1330,5 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 });
+
+// Article da blur qilish kerak titleni background ini

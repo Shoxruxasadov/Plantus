@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppStore } from '../store/appStore';
 import { getAIChat } from '../services/supabase';
+import { triggerHaptic } from '../utils/helpers';
 import { RootStackParamList, BottomTabParamList } from '../types';
 import { COLORS, DARK_COLORS } from '../utils/theme';
 
@@ -137,10 +138,12 @@ const TabNavigator = () => {
   const chatCreated = useAppStore((s) => s.chatCreated);
   const setAssistantChatId = useAppStore((s) => s.setAssistantChatId);
   const setChatCreated = useAppStore((s) => s.setChatCreated);
+  const vibration = useAppStore((s) => s.vibration);
   const theme = darkMode ? DARK_COLORS : COLORS;
 
   const handleAssistantTabPress = (e: any, navigation: any) => {
     e.preventDefault();
+    triggerHaptic(vibration);
     if (!userCollection?.id) {
       navigation.navigate('AssistantTab');
       return;
@@ -209,11 +212,17 @@ const TabNavigator = () => {
         name="HomeTab"
         component={HomeScreen}
         options={{ tabBarLabel: 'Home' }}
+        listeners={() => ({
+          tabPress: () => triggerHaptic(vibration),
+        })}
       />
       <Tab.Screen
         name="GardenTab"
         component={MyGardenScreen}
         options={{ tabBarLabel: 'My Garden' }}
+        listeners={() => ({
+          tabPress: () => triggerHaptic(vibration),
+        })}
       />
       <Tab.Screen
         name="ScannerTab"
@@ -227,6 +236,7 @@ const TabNavigator = () => {
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
+            triggerHaptic(vibration);
             navigation.navigate('Scanner');
           },
         })}
@@ -243,6 +253,9 @@ const TabNavigator = () => {
         name="ProfileTab"
         component={ProfileScreen}
         options={{ tabBarLabel: 'Profile' }}
+        listeners={() => ({
+          tabPress: () => triggerHaptic(vibration),
+        })}
       />
     </Tab.Navigator>
   );
