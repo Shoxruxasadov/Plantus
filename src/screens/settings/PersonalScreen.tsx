@@ -7,15 +7,17 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'phosphor-react-native';
+import * as ImagePicker from 'expo-image-picker';
 
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
 import { useTheme } from '../../hooks';
 import { useAppStore } from '../../store/appStore';
-import { updateUserData } from '../../services/supabase';
+import { updateUserData, uploadUserAvatar, removeUserAvatar } from '../../services/supabase';
 
 export default function PersonalScreen() {
   const navigation = useNavigation();
@@ -25,6 +27,69 @@ export default function PersonalScreen() {
 
   const [name, setName] = useState(userCollection.name || '');
   const [loading, setLoading] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const showAvatarActions = () => {
+    if (!userCollection?.id || uploadingAvatar) return;
+    const options: { text: string; onPress?: () => void; style?: 'cancel' | 'destructive' }[] = [
+      { text: 'Change photo', onPress: handleChangePhoto },
+      { text: 'Cancel', style: 'cancel' },
+    ];
+    if (userCollection.image) {
+      options.splice(1, 0, { text: 'Remove photo', onPress: handleRemovePhoto, style: 'destructive' });
+    }
+    Alert.alert('Profile photo', undefined, options);
+  };
+
+  const handleChangePhoto = async () => {
+    if (!userCollection?.id || uploadingAvatar) return;
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission', 'Photo library access is required to change your avatar.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        base64: true,
+      });
+      if (result.canceled || !result.assets[0]?.base64) return;
+      setUploadingAvatar(true);
+      const mime = result.assets[0].mimeType ?? 'image/jpeg';
+      const { data: url, error } = await uploadUserAvatar(userCollection.id, result.assets[0].base64, mime);
+      if (error) {
+        Alert.alert('Error', 'Failed to upload photo. Please try again.');
+        return;
+      }
+      if (url) await updateUserCollection({ image: url });
+    } catch (e) {
+      console.error('Avatar upload error:', e);
+      Alert.alert('Error', 'Failed to upload photo.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    if (!userCollection?.id || uploadingAvatar) return;
+    try {
+      setUploadingAvatar(true);
+      const { error } = await removeUserAvatar(userCollection.id);
+      if (error) {
+        Alert.alert('Error', 'Failed to remove photo.');
+        return;
+      }
+      await updateUserCollection({ image: null });
+    } catch (e) {
+      console.error('Avatar remove error:', e);
+      Alert.alert('Error', 'Failed to remove photo.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -68,6 +133,33 @@ export default function PersonalScreen() {
             <Text style={styles.saveButtonText}>Save</Text>
           )}
         </TouchableOpacity>
+      </View>
+
+      {/* Avatar */}
+      <View style={styles.avatarSection}>
+        <TouchableOpacity
+          style={styles.avatarWrap}
+          onPress={showAvatarActions}
+          disabled={uploadingAvatar}
+          activeOpacity={0.7}
+        >
+          {uploadingAvatar ? (
+            <View style={[styles.avatar, styles.avatarLoading]}>
+              <ActivityIndicator size="small" color={COLORS.textLight} />
+            </View>
+          ) : userCollection?.image ? (
+            <Image source={{ uri: userCollection.image }} style={styles.avatarImage} />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {userCollection.name?.charAt(0)?.toUpperCase() || 'U'}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        <Text style={[styles.avatarHint, { color: theme.textTertiary }]}>
+          Tap to change or remove photo
+        </Text>
       </View>
 
       {/* Form */}
@@ -127,6 +219,38 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.md,
     fontWeight: '600',
     color: COLORS.primary,
+  },
+  avatarSection: {
+    alignItems: 'center',
+    paddingVertical: SPACING.xl,
+  },
+  avatarWrap: {
+    alignSelf: 'center',
+  },
+  avatar: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarImage: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+  },
+  avatarLoading: {
+    backgroundColor: COLORS.primary,
+  },
+  avatarText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: COLORS.textLight,
+  },
+  avatarHint: {
+    fontSize: FONT_SIZES.sm,
+    marginTop: SPACING.sm,
   },
   form: {
     padding: SPACING.xl,

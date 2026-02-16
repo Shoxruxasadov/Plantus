@@ -236,7 +236,7 @@ export default function ProScreen() {
           <TouchableOpacity onPress={handleRestore}>
             {restoring ? <ActivityIndicator size="small" color={COLORS.textSecondary} /> : <Text style={styles.linkText}>Restore</Text>}
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => Linking.openURL('http://getcalway.com/privacy-policy/')}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://plantus.app/privacy-policy/')}>
             <Text style={styles.linkText}>Privacy policy</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleRestore}>

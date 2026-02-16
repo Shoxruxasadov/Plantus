@@ -96,6 +96,7 @@ export default function SignUpScreen() {
           id: data.user.id,
           email: email.trim(),
           name: name.trim(),
+          image: null,
         });
         if (notifications) setupGardenNotificationsForUser(data.user.id).catch(() => {});
         navigation.navigate('MainTabs');
@@ -221,14 +222,14 @@ export default function SignUpScreen() {
               By continuing, you agree to our{' '}
               <Text
                 style={styles.termsLink}
-                onPress={() => Linking.openURL('http://getcalway.com/terms-of-conditions/')}
+                onPress={() => Linking.openURL('https://plantus.app/terms-of-use/')}
               >
                 Terms of Service
               </Text>{' '}
               and{'\n'}
               <Text
                 style={styles.termsLink}
-                onPress={() => Linking.openURL('http://getcalway.com/privacy-policy/')}
+                onPress={() => Linking.openURL('https://plantus.app/privacy-policy/')}
               >
                 Privacy Policy
               </Text>

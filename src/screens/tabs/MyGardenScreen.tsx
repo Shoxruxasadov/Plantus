@@ -1106,7 +1106,7 @@ const styles = StyleSheet.create({
   },
   // Garden layout
   gardenContainer: {
-    paddingTop: 24,
+    // paddingTop: 24,
     flex: 1,
   },
   gardenScrollContent: {

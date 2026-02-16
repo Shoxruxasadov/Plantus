@@ -174,7 +174,7 @@ export default function StartedScreen() {
         deletemode: false,
       });
 
-      await setUserCollection({ id: userId, email, name });
+      await setUserCollection({ id: userId, email, name, image: null });
       getAIChat(userId)
         .then(({ data: chat }) => {
           if (chat) {
@@ -188,6 +188,7 @@ export default function StartedScreen() {
         id: existingUser.id,
         email: existingUser.email,
         name: existingUser.name,
+        image: existingUser.image ?? null,
       });
       getAIChat(existingUser.id)
         .then(({ data: chat }) => {
@@ -221,7 +222,7 @@ export default function StartedScreen() {
           <ArrowLeft size={24} color={theme.text} weight="bold" />
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => navigation.navigate("MainTabs")}
+          onPress={() => navigation.replace("MainTabs")}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Text style={[styles.skipText, { color: theme.textSecondary }]}>

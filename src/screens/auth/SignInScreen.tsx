@@ -109,6 +109,7 @@ export default function SignInScreen() {
             id: userData.id,
             email: userData.email,
             name: userData.name,
+            image: userData.image ?? null,
           });
           getAIChat(userData.id)
             .then(({ data: chat }) => {
@@ -155,7 +156,7 @@ export default function SignInScreen() {
         created_at: new Date().toISOString(),
         deletemode: false,
       });
-      await setUserCollection({ id: userId, email: userEmail, name });
+      await setUserCollection({ id: userId, email: userEmail, name, image: null });
       getAIChat(userId)
         .then(({ data: chat }) => {
           if (chat) {
@@ -169,6 +170,7 @@ export default function SignInScreen() {
         id: existingUser.id,
         email: existingUser.email,
         name: existingUser.name,
+        image: existingUser.image ?? null,
       });
       getAIChat(existingUser.id)
         .then(({ data: chat }) => {

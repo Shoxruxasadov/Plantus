@@ -8,7 +8,10 @@ import {
   Alert,
   ImageBackground,
   Linking,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,7 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { RootStackParamList } from '../../types';
 import { COLORS, DARK_COLORS, FONT_SIZES, SPACING, RADIUS, SHADOWS } from '../../utils/theme';
 import { useAppStore } from '../../store/appStore';
-import { signOut } from '../../services/supabase';
+import { signOut, uploadUserAvatar, removeUserAvatar } from '../../services/supabase';
 import { logOutUser } from '../../services/revenueCat';
 import { openAppStore, openEmail } from '../../utils/helpers';
 import { presentCustomerCenter } from '../../utils/paywall';
@@ -47,9 +50,11 @@ export default function ProfileScreen() {
     logout,
     temperature,
     setTemperature,
+    updateUserCollection,
   } = useAppStore();
 
   const [loggingOut, setLoggingOut] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
@@ -86,6 +91,68 @@ export default function ProfileScreen() {
     await presentCustomerCenter();
   };
 
+  const showAvatarActions = () => {
+    if (!isLoggedIn || !userCollection?.id) return;
+    const options: { text: string; onPress?: () => void; style?: 'cancel' | 'destructive' }[] = [
+      { text: 'Change photo', onPress: handleChangePhoto },
+      { text: 'Cancel', style: 'cancel' },
+    ];
+    if (userCollection.image) {
+      options.splice(1, 0, { text: 'Remove photo', onPress: handleRemovePhoto, style: 'destructive' });
+    }
+    Alert.alert('Profile photo', undefined, options);
+  };
+
+  const handleChangePhoto = async () => {
+    if (!userCollection?.id || uploadingAvatar) return;
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission', 'Photo library access is required to change your avatar.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        base64: true,
+      });
+      if (result.canceled || !result.assets[0]?.base64) return;
+      setUploadingAvatar(true);
+      const mime = result.assets[0].mimeType ?? 'image/jpeg';
+      const { data: url, error } = await uploadUserAvatar(userCollection.id, result.assets[0].base64, mime);
+      if (error) {
+        Alert.alert('Error', 'Failed to upload photo. Please try again.');
+        return;
+      }
+      if (url) await updateUserCollection({ image: url });
+    } catch (e) {
+      console.error('Avatar upload error:', e);
+      Alert.alert('Error', 'Failed to upload photo.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    if (!userCollection?.id || uploadingAvatar) return;
+    try {
+      setUploadingAvatar(true);
+      const { error } = await removeUserAvatar(userCollection.id);
+      if (error) {
+        Alert.alert('Error', 'Failed to remove photo.');
+        return;
+      }
+      await updateUserCollection({ image: null });
+    } catch (e) {
+      console.error('Avatar remove error:', e);
+      Alert.alert('Error', 'Failed to remove photo.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const generalSettings: SettingItem[] = [
     {
       Icon: MapPin,
@@ -118,13 +185,13 @@ export default function ProfileScreen() {
     {
       Icon: ShieldCheck,
       title: 'Privacy policy',
-      onPress: () => Linking.openURL('http://getcalway.com/privacy-policy/'),
+      onPress: () => Linking.openURL('https://plantus.app/privacy-policy/'),
       showArrow: true,
     },
     {
       Icon: FileText,
       title: 'Terms of Use',
-      onPress: () => Linking.openURL('http://getcalway.com/terms-of-conditions/'),
+      onPress: () => Linking.openURL('https://plantus.app/terms-of-use/'),
       showArrow: true,
     },
     {
@@ -206,13 +273,26 @@ export default function ProfileScreen() {
       >
         {/* User Card */}
         <View style={[styles.userCard, { backgroundColor: darkMode ? theme.card : '#ffffff' }]}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {isLoggedIn
-                ? userCollection.name?.charAt(0)?.toUpperCase() || 'U'
-                : 'A'}
-            </Text>
-          </View>
+          <TouchableOpacity
+            style={styles.avatarWrap}
+            onPress={isLoggedIn ? showAvatarActions : undefined}
+            disabled={uploadingAvatar}
+            activeOpacity={isLoggedIn ? 0.7 : 1}
+          >
+            {uploadingAvatar ? (
+              <View style={[styles.avatar, styles.avatarLoading]}>
+                <ActivityIndicator size="small" color={COLORS.textLight} />
+              </View>
+            ) : userCollection?.image ? (
+              <Image source={{ uri: userCollection.image }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {isLoggedIn ? userCollection.name?.charAt(0)?.toUpperCase() || 'U' : 'A'}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
           <View style={styles.userInfo}>
             <Text style={[styles.userName, { color: theme.text }]}>
               {isLoggedIn ? userCollection.name || 'User' : 'Anonym User'}
@@ -378,6 +458,9 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     marginBottom: SPACING.md,
   },
+  avatarWrap: {
+    alignSelf: 'center',
+  },
   avatar: {
     width: 56,
     height: 56,
@@ -385,6 +468,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
+  avatarLoading: {
+    backgroundColor: COLORS.primary,
   },
   avatarText: {
     fontSize: FONT_SIZES.xxl,

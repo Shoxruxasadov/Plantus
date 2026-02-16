@@ -234,20 +234,20 @@ export default function ScannerScreen() {
 
       const plantData = result.data;
 
-      const { data: snap, error } = await createSnap({
-        name: plantData.name,
-        description: plantData.description,
-        labels: plantData.labels,
-        images: plantData.images,
-        overview: JSON.stringify(plantData.overview),
-        careplan: JSON.stringify(plantData.careplan),
-        disease: JSON.stringify(plantData.disease),
-        user: userCollection.id,
-        created_at: new Date().toISOString(),
-      });
-
-      if (error) {
-        console.error('Create snap error:', error);
+      let snap: any = null;
+      if (userCollection?.id) {
+        const { data: inserted, error } = await createSnap({
+          name: plantData.name ?? null,
+          description: plantData.description ?? null,
+          labels: plantData.labels ?? null,
+          images: plantData.images ?? [],
+          overview: plantData.overview ?? null,
+          careplan: plantData.careplan ?? null,
+          disease: Array.isArray(plantData.disease) ? plantData.disease : null,
+          user: userCollection.id,
+        });
+        if (error) console.error('Create snap error:', error);
+        else snap = inserted;
       }
 
       navigation.navigate('Plant', {

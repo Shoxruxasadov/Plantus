@@ -4,6 +4,8 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
+  /** Profile image URL (Supabase storage, bucket: users) */
+  image?: string | null;
   isPro?: boolean;
   createdAt?: string;
 }

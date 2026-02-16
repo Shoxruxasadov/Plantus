@@ -120,6 +120,62 @@ export const updateUserData = async (userId: string, updates: any) => {
   return { data, error };
 };
 
+const USER_AVATAR_BUCKET = 'users';
+
+/** Decode base64 to ArrayBuffer for Supabase storage upload (RN-compatible). */
+function base64ToArrayBuffer(base64: string): ArrayBuffer {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+
+/**
+ * Upload avatar image to bucket "users" and set users.image to public URL.
+ * @param userId - auth user id
+ * @param base64 - image data (e.g. from ImagePicker with base64: true)
+ * @param mimeType - e.g. 'image/jpeg' or 'image/png'
+ */
+export const uploadUserAvatar = async (
+  userId: string,
+  base64: string,
+  mimeType: string = 'image/jpeg'
+): Promise<{ data: string | null; error: any }> => {
+  const ext = mimeType.includes('png') ? 'png' : 'jpg';
+  const path = `${userId}/avatar.${ext}`;
+  try {
+    const arrayBuffer = base64ToArrayBuffer(base64);
+    const { error: uploadError } = await supabase.storage
+      .from(USER_AVATAR_BUCKET)
+      .upload(path, arrayBuffer, { contentType: mimeType, upsert: true });
+    if (uploadError) return { data: null, error: uploadError };
+    const { data: urlData } = supabase.storage.from(USER_AVATAR_BUCKET).getPublicUrl(path);
+    const publicUrl = urlData?.publicUrl ?? null;
+    if (publicUrl) {
+      const { error: updateError } = await usersTable().update({ image: publicUrl }).eq('id', userId);
+      if (updateError) return { data: publicUrl, error: updateError };
+    }
+    return { data: publicUrl, error: null };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+};
+
+/**
+ * Remove user avatar: set users.image to null and delete file from bucket "users".
+ */
+export const removeUserAvatar = async (userId: string): Promise<{ error: any }> => {
+  const { data: user } = await usersTable().select('image').eq('id', userId).single();
+  const { error: updateError } = await usersTable().update({ image: null }).eq('id', userId);
+  if (updateError) return { error: updateError };
+  if (user?.image) {
+    await supabase.storage
+      .from(USER_AVATAR_BUCKET)
+      .remove([`${userId}/avatar.jpg`, `${userId}/avatar.png`]);
+  }
+  return { error: null };
+};
+
 // Garden functions
 export const getGardenPlants = async (userId: string) => {
   const { data, error } = await gardenTable()
