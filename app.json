@@ -2,7 +2,7 @@
   "expo": {
     "name": "Plantus",
     "slug": "plantus",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/app_launcher_icon.png",
     "scheme": "plantus",
@@ -19,6 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.webnum.plantus",
+      "buildNumber": "14",
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "We need camera access to identify and diagnose your plants",
