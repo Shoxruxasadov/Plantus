@@ -145,7 +145,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   repottingReminder: { ...defaultReminder },
   selectedSegment: 1,
   isPro: false,
-  remainingScans: 5,
+  remainingScans: 1,
 
   // Actions
   setUser: (user) => set({ user, isLoggedIn: !!user }),
