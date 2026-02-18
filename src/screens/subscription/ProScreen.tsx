@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   Linking,
   Dimensions,
   Image,
-  ImageBackground,
+  Animated,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,6 +27,9 @@ import {
 } from 'phosphor-react-native';
 import type { PurchasesPackage } from 'react-native-purchases';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle } from 'react-native-svg';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
 import { useAppStore } from '../../store/appStore';
@@ -42,14 +45,15 @@ const { width: SW } = Dimensions.get('window');
 const HERO_HEIGHT = 150;
 
 const FEATURES = [
-  { icon: Plant, label: 'Full plant identification' },
-  { icon: Calendar, label: 'Smart care plans' },
-  { icon: Bell, label: 'Gentle smart reminders' },
-  { icon: Brain, label: 'Advanced plant insights' },
-  { icon: BookOpen, label: 'Full plant wiki access' },
+  { icon: Plant, label: 'Unlimited Plant Identification' },
+  { icon: Calendar, label: 'Instant Disease Diagnosis' },
+  { icon: Bell, label: 'Personalized Care Plans' },
+  { icon: Brain, label: 'Smart Watering Reminders' },
+  { icon: BookOpen, label: '50,000+ Plant Encyclopedia' },
 ];
 
 const PRO_CLOSE_COUNT_KEY = '@plantus_pro_close_count';
+const ONE_TIME_OFFER_SHOWN_KEY = '@plantus_onetime_offer_shown';
 
 export default function ProScreen() {
   const navigation = useNavigation<any>();
@@ -58,16 +62,31 @@ export default function ProScreen() {
   const { isPro, setIsPro } = useAppStore();
   const { theme, isDark } = useTheme();
   const isFirstStep = route.params?.isFirstStep ?? false;
+  const fromScanner = route.params?.fromScanner ?? false;
 
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
-  const [selectedPlanKey, setSelectedPlanKey] = useState<'annual' | 'monthly'>('annual');
+  const [selectedPlanKey, setSelectedPlanKey] = useState<'weekly' | 'yearly'>('yearly');
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [closeUnlocked, setCloseUnlocked] = useState(false);
+  const closeProgress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     loadOfferings();
   }, []);
+
+  useEffect(() => {
+    const anim = Animated.timing(closeProgress, {
+      toValue: 1,
+      duration: 3000,
+      useNativeDriver: false,
+    });
+    anim.start(({ finished }) => {
+      if (finished) setCloseUnlocked(true);
+    });
+    return () => anim.stop();
+  }, [closeProgress]);
 
   const loadOfferings = async () => {
     try {
@@ -88,8 +107,8 @@ export default function ProScreen() {
           });
         }
         allPkgs.sort((a, b) => {
-          const order: Record<string, number> = { ANNUAL: 0, MONTHLY: 1 };
-          return (order[a.packageType] ?? 2) - (order[b.packageType] ?? 2);
+          const order: Record<string, number> = { ANNUAL: 0, YEARLY: 0, WEEKLY: 1, MONTHLY: 2 };
+          return (order[a.packageType] ?? 3) - (order[b.packageType] ?? 3);
         });
         setPackages(allPkgs);
       }
@@ -102,7 +121,7 @@ export default function ProScreen() {
 
   const handlePurchase = async () => {
     if (!selectedPackage) {
-      Alert.alert('Select a plan', 'Please tap Annual or Monthly plan first, then Start trial.');
+      Alert.alert('Select a plan', 'Please choose Weekly or Yearly plan, then tap Start.');
       return;
     }
     setPurchasing(true);
@@ -157,22 +176,26 @@ export default function ProScreen() {
       navigation.goBack();
       return;
     }
-    if (isFirstStep) {
-      navigation.navigate('OneTimeOffer', { fromFirstTime: true });
-      return;
-    }
-    try {
-      const raw = await AsyncStorage.getItem(PRO_CLOSE_COUNT_KEY);
-      const count = Math.max(0, parseInt(raw || '0', 10)) + 1;
-      await AsyncStorage.setItem(PRO_CLOSE_COUNT_KEY, String(count));
-      if (count % 10 === 0) {
-        navigation.navigate('OneTimeOffer', { fromFirstTime: false });
-      } else {
+    const shouldOfferOneTime = isFirstStep || fromScanner;
+    if (shouldOfferOneTime) {
+      try {
+        const alreadyShown = await AsyncStorage.getItem(ONE_TIME_OFFER_SHOWN_KEY);
+        if (alreadyShown === 'true') {
+          if (isFirstStep) {
+            navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+          } else {
+            navigation.goBack();
+          }
+          return;
+        }
+        await AsyncStorage.setItem(ONE_TIME_OFFER_SHOWN_KEY, 'true');
+        navigation.navigate('OneTimeOffer', { fromFirstTime: isFirstStep });
+      } catch {
         navigation.goBack();
       }
-    } catch {
-      navigation.goBack();
+      return;
     }
+    navigation.goBack();
   };
 
   if (isPro) {
@@ -199,42 +222,88 @@ export default function ProScreen() {
     );
   }
 
-  const annualPkg = packages.find((p) => p.packageType === 'ANNUAL' || p.identifier === '$rc_annual');
-  const monthlyPkg = packages.find((p) => p.packageType === 'MONTHLY' || p.identifier === '$rc_monthly');
+  // Production: subscription_weakly (Weekly), subscription_yearly (Yearly) — RevenueCat $rc_weekly, $rc_annual
+  const weeklyPkg = packages.find(
+    (p) =>
+      p.packageType === 'WEEKLY' ||
+      p.identifier === '$rc_weekly' ||
+      (p as any).identifier?.includes('weekly') ||
+      (p as any).identifier?.includes('weakly')
+  );
+  const yearlyPkg = packages.find(
+    (p) =>
+      p.packageType === 'ANNUAL' ||
+      p.identifier === '$rc_annual' ||
+      p.identifier === 'yearly' ||
+      (p as any).identifier?.includes('yearly')
+  );
 
-  // Selected package for purchase (from current plan key)
-  const selectedPackage = selectedPlanKey === 'annual' ? (annualPkg ?? null) : (monthlyPkg ?? null);
+  const selectedPackage = selectedPlanKey === 'yearly' ? (yearlyPkg ?? null) : (weeklyPkg ?? null);
 
-  // All prices from RevenueCat product (localized priceString from App Store)
-  const annualPrice = annualPkg?.product?.priceString ?? '—';
-  const annualPerWeek =
-    annualPkg?.product?.price != null
-      ? (annualPkg.product.price / 52).toFixed(2)
-      : '—';
-  const monthlyPrice = monthlyPkg?.product?.priceString ?? '—';
+  // Prices from RevenueCat; fallback for display before load / production copy
+  const weeklyPrice = weeklyPkg?.product?.priceString ?? '$4.99';
+  const yearlyPrice = yearlyPkg?.product?.priceString ?? '$29.99';
+  const yearlyPerWeek =
+    yearlyPkg?.product?.price != null
+      ? (yearlyPkg.product.price / 52).toFixed(2)
+      : '0.58';
 
-  // Radio: one plan selected by key (works even when offerings haven't loaded)
-  const isAnnualSelected = selectedPlanKey === 'annual';
-  const isMonthlySelected = selectedPlanKey === 'monthly';
+  const isYearlySelected = selectedPlanKey === 'yearly';
+  const isWeeklySelected = selectedPlanKey === 'weekly';
+
+  const CIRCLE_SIZE = 30;
+  const CIRCLE_R = 13;
+  const circumference = 2 * Math.PI * CIRCLE_R;
+  const strokeOffset = closeProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [circumference, 0],
+  });
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.closeRowAbs, { top: insets.top + 8 }]}>
-        <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
-          <X size={24} color={theme.text} weight="bold" />
-        </TouchableOpacity>
+        {!closeUnlocked ? (
+          <View style={styles.closeBtn}>
+            <Svg width={CIRCLE_SIZE} height={CIRCLE_SIZE} style={styles.closeProgressSvg}>
+              <Circle
+                cx={CIRCLE_SIZE / 2}
+                cy={CIRCLE_SIZE / 2}
+                r={CIRCLE_R}
+                stroke={theme.borderLight}
+                strokeWidth={3}
+                fill="none"
+              />
+              <AnimatedCircle
+                cx={CIRCLE_SIZE / 2}
+                cy={CIRCLE_SIZE / 2}
+                r={CIRCLE_R}
+                stroke={theme.primary}
+                strokeWidth={3}
+                fill="none"
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeOffset}
+                transform={`rotate(-90 ${CIRCLE_SIZE / 2} ${CIRCLE_SIZE / 2})`}
+              />
+            </Svg>
+          </View>
+        ) : (
+          <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
+            <X size={24} color={theme.text} weight="bold" />
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={[styles.content, { paddingBottom: insets.bottom + 24 }]}>
         {/* Hero: plant photo under status bar (transparent app bar) + Trust image */}
         <View style={[styles.heroWrap, { height: HERO_HEIGHT + insets.top }]}>
-          <ImageBackground
+          <Image
             source={require('../../../assets/unsplash_LOXYdaej5eo.png')}
-            style={styles.heroBgImage}
+            style={[styles.heroBgImage, styles.heroBgImageLayer, { opacity: isDark ? 0.3 : 1 }]}
             resizeMode="cover"
-          >
+          />
+          <View style={styles.heroContent}>
             <LinearGradient
-              colors={isDark ? ['rgba(0,0,0,0)', 'rgba(0,0,0,0.5)', theme.background] : ['rgba(255,255,255,0)', 'rgba(255,255,255,0.6)', '#FFFFFF']}
+              colors={isDark ? ['rgba(29, 29, 29,0)', 'rgba(29, 29, 29,0.5)', theme.background] : ['rgba(255,255,255,0)', 'rgba(255,255,255,0.6)', '#FFFFFF']}
               locations={[0, 0.5, 1]}
               style={styles.heroGradient}
               pointerEvents="none"
@@ -242,22 +311,22 @@ export default function ProScreen() {
             <View style={[styles.heroOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.88)' }]} />
             <View style={[styles.trustImageWrap, { paddingTop: insets.top }]}>
               <Image
-                source={require('../../../assets/Trust.png')}
+                source={isDark ? require('../../../assets/Trust_darkmode.png') : require('../../../assets/Trust.png')}
                 style={styles.trustImage}
                 resizeMode="contain"
               />
             </View>
-          </ImageBackground>
+          </View>
         </View>
 
         <View style={[styles.mainBlock, { backgroundColor: theme.background }]}>
-          <Text style={[styles.mainTitle, { color: theme.text }]} numberOfLines={2}>Care for your plants like a pro gardener</Text>
+          <Text style={[styles.mainTitle, { color: theme.text }]} numberOfLines={2}>Unlock Full Access</Text>
 
           <View style={styles.featuresWrap}>
             {FEATURES.map(({ icon: Icon, label }) => (
               <View key={label} style={styles.featureRow}>
-                <View style={[styles.featureIconWrap, { backgroundColor: theme.backgroundSecondary }]}>
-                  <Icon size={20} color={theme.text} />
+                <View style={styles.featureIconWrap}>
+                  <Icon size={24} color={theme.text} />
                 </View>
                 <Text style={[styles.featureLabel, { color: theme.text }]} numberOfLines={1}>{label}</Text>
               </View>
@@ -265,70 +334,89 @@ export default function ProScreen() {
           </View>
 
           {loading ? (
-            <ActivityIndicator size="large" color={COLORS.primary} style={{ marginVertical: 12 }} />
+            <ActivityIndicator size="large" color="#000000" style={{ marginVertical: 24 }} />
           ) : (
           <View style={styles.plansWrap}>
-            <TouchableOpacity
-              style={[
-                styles.planCard,
-                { backgroundColor: theme.card, borderColor: theme.borderLight },
-                isAnnualSelected && { ...styles.planCardSelected, backgroundColor: isDark ? theme.backgroundSecondary : '#F0FDF4', borderColor: theme.primary },
-              ]}
-              onPress={() => setSelectedPlanKey('annual')}
-              activeOpacity={0.85}
-            >
-              <View style={styles.bestBadge}>
-                <Crown size={12} color="#fff" weight="fill" />
-                <Text style={styles.bestBadgeText}>Best value</Text>
-              </View>
-              <View style={styles.planLeft}>
-                <Text style={[styles.planName, { color: theme.text }]}>Annual Plan</Text>
-                <Text style={[styles.planDesc, { color: theme.textSecondary }]}>
-                  {annualPrice === '—' ? '—' : `${annualPrice} / year (${annualPerWeek === '—' ? '—' : `$${annualPerWeek}`}/week)`}
+            <View style={[styles.yearlyPlanWrap, { backgroundColor: isYearlySelected ? theme.primary : theme.accentLight }]}>
+              <View style={styles.planBanner}>
+                <Text style={styles.planBannerText} numberOfLines={1}>
+                2,847 plant lovers joined today
                 </Text>
+                <View style={[styles.planBannerSaveBadge, { backgroundColor: isYearlySelected ? theme.primaryDark : theme.accentDark }]}>
+                  <Text style={styles.planBannerSaveText}>SAVE 88%</Text>
+                </View>
               </View>
-              <View style={[styles.radioOuter, { borderColor: theme.borderLight }, isAnnualSelected && { backgroundColor: theme.primary, borderColor: theme.primary }]}>
-                {isAnnualSelected && <Check size={18} color="#fff" weight="bold" />}
-              </View>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.planCard,
+                  { backgroundColor: theme.card, borderColor: theme.accentLight },
+                  isYearlySelected && { ...styles.planCardSelected, backgroundColor: isDark ? theme.backgroundSecondary : theme.accent, borderColor: theme.primary },
+                ]}
+                onPress={() => setSelectedPlanKey('yearly')}
+                activeOpacity={0.85}
+              >
+                <View style={[styles.radioOuter, { borderColor: theme.borderLight }, isYearlySelected && styles.radioSelected]}>
+                  {isYearlySelected && <Check size={14} color="#fff" weight="bold" />}
+                </View>
+                <View style={styles.planLeft}>
+                  <Text style={[styles.planName, { color: theme.text }]}>Yearly</Text>
+                  <Text style={[styles.planDesc, { color: theme.textSecondary }]}>
+                    USD {yearlyPrice}/year
+                  </Text>
+                </View>
+                <View style={styles.planRight}>
+                  <Text style={[styles.planPriceRight, { color: theme.text }]}>${yearlyPerWeek}/week</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
               style={[
                 styles.planCard,
                 { backgroundColor: theme.card, borderColor: theme.borderLight },
-                isMonthlySelected && { ...styles.planCardSelected, backgroundColor: isDark ? theme.backgroundSecondary : '#F0FDF4', borderColor: theme.primary },
+                isWeeklySelected && { ...styles.planCardSelected, backgroundColor: isDark ? theme.backgroundSecondary : theme.accent, borderColor: theme.primary },
               ]}
-              onPress={() => setSelectedPlanKey('monthly')}
+              onPress={() => setSelectedPlanKey('weekly')}
               activeOpacity={0.85}
             >
+              <View style={[styles.radioOuter, { borderColor: theme.borderLight }, isWeeklySelected && styles.radioSelected]}>
+                {isWeeklySelected && <Check size={14} color="#fff" weight="bold" />}
+              </View>
               <View style={styles.planLeft}>
-                <Text style={[styles.planName, { color: theme.text }]}>Monthly Plan</Text>
+                <Text style={[styles.planName, { color: theme.text }]}>Weekly</Text>
                 <Text style={[styles.planDesc, { color: theme.textSecondary }]}>
-                  {monthlyPrice === '—' ? '—' : `3 days free trial, then ${monthlyPrice} / month`}
+                  3-day trial
                 </Text>
               </View>
-              <View style={[styles.radioOuter, { borderColor: theme.borderLight }, isMonthlySelected && { backgroundColor: theme.primary, borderColor: theme.primary }]}>
-                {isMonthlySelected && <Check size={18} color="#fff" weight="bold" />}
+              <View style={styles.planRight}>
+                <Text style={[styles.planPriceRight, { color: theme.text }]}>{weeklyPrice}/week</Text>
               </View>
             </TouchableOpacity>
           </View>
           )}
         </View>
 
-        {/* CTA */}
+        {/* CTA — pill shape, gradient (theme green) */}
         <TouchableOpacity
-          style={[styles.ctaBtn, { backgroundColor: theme.primary }, purchasing && { opacity: 0.7 }]}
+          style={[styles.ctaBtnWrap, purchasing && { opacity: 0.7 }]}
           onPress={handlePurchase}
           disabled={purchasing || !selectedPackage}
           activeOpacity={0.85}
         >
-          {purchasing ? (
-            <ActivityIndicator color={theme.textLight} />
-          ) : (
-            <Text style={[styles.ctaBtnText, { color: theme.textLight }]}>
-              {selectedPlanKey === 'monthly' ? 'Start my 3-day trial' : 'Start my 7-day trial'}
-            </Text>
-          )}
+          <LinearGradient
+            colors={[theme.gradientStart ?? theme.primary, theme.gradientEnd ?? theme.primaryLight ?? theme.primary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.ctaBtn}
+          >
+            {purchasing ? (
+              <ActivityIndicator color={theme.textLight} />
+            ) : (
+              <Text style={[styles.ctaBtnText, { color: theme.textLight }]}>
+                {selectedPlanKey === 'weekly' ? 'Start 3-day trial' : 'Subscription'}
+              </Text>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
 
         {/* Footer links */}
@@ -370,6 +458,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  closeProgressSvg: {
+    position: 'absolute',
+  },
   content: {
     flex: 1,
     justifyContent: 'space-between',
@@ -382,10 +473,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   heroBgImage: {
-    flex: 1,
+    // flex: 1,
     width: '100%',
+    maxHeight: 200,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  heroBgImageLayer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  },
+  heroContent: {
+    ...StyleSheet.absoluteFillObject,
   },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -422,15 +524,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   mainTitle: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: '700',
     color: COLORS.text,
+    textAlign: 'center',
     marginTop: SPACING.md,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.lg,
   },
   featuresWrap: {
     gap: SPACING.sm,
     flexShrink: 0,
+    marginBottom: SPACING.sm,
   },
   featureRow: {
     flexDirection: 'row',
@@ -438,16 +542,16 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   featureIconWrap: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     borderRadius: 18,
-    backgroundColor: COLORS.backgroundSecondary,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
   featureLabel: {
     fontSize: FONT_SIZES.lg,
-    fontWeight: '500',
+    fontWeight: '600',
     color: COLORS.text,
     flex: 1,
   },
@@ -456,21 +560,51 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     marginTop: SPACING.lg,
   },
+  yearlyPlanWrap: {
+    gap: 0,
+    borderRadius: 16,
+  },
+  planBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+    paddingTop: 6,
+    paddingHorizontal: SPACING.xl,
+    gap: SPACING.sm,
+  },
+  planBannerText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
+    color: COLORS.textLight,
+  },
+  planBannerSaveBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: RADIUS.lg,
+  },
+  planBannerSaveText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.textLight,
+  },
   planCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    padding: SPACING.lg,
-    paddingTop: SPACING.xl,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: COLORS.borderLight,
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    borderRadius: 16,
+    // borderWidth: 1,
+    // borderColor: COLORS.borderLight,
     position: 'relative',
-    minHeight: 68,
+    minHeight: 76,
+    borderWidth: 3,
+    borderColor: COLORS.primary,
   },
   planCardSelected: {
-    backgroundColor: '#F0FDF4',
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: COLORS.primary,
   },
   bestBadge: {
@@ -490,43 +624,71 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
   },
+  bestBadgeInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  saveBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: RADIUS.sm,
+  },
+  saveBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#fff',
+  },
   planLeft: {
     flex: 1,
+    marginLeft: SPACING.lg,
+    justifyContent: 'center',
   },
   planName: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
     color: COLORS.text,
   },
   planDesc: {
-    fontSize: 13,
+    fontSize: 14,
     color: COLORS.textSecondary,
-    marginTop: 2,
+    marginTop: 4,
+  },
+  planRight: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  planPriceRight: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text,
   },
   radioOuter: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 22,
+    height: 22,
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: COLORS.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: SPACING.md,
   },
   radioSelected: {
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
   },
-  ctaBtn: {
-    backgroundColor: COLORS.primary,
+  ctaBtnWrap: {
     marginHorizontal: SPACING.xl,
-    minHeight: 52,
-    paddingVertical: 16,
     marginBottom: SPACING.sm,
-    borderRadius: 14,
+    flexShrink: 0,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  ctaBtn: {
+    minHeight: 54,
+    paddingVertical: 16,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
   },
   ctaBtnText: {
     fontSize: 17,
@@ -538,7 +700,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-around',
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xl,
+    paddingTop: SPACING.md,
     flexShrink: 0,
   },
   footerLinkText: {

@@ -188,7 +188,7 @@ export default function ScannerScreen() {
         'Get more scans to continue identifying plants.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Get more', onPress: () => navigation.navigate('Pro' as never) },
+          { text: 'Get more', onPress: () => navigation.navigate('Pro', { fromScanner: true }) },
         ]
       );
       return;
@@ -238,7 +238,7 @@ export default function ScannerScreen() {
         'Get more scans to continue identifying plants.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Get more', onPress: () => navigation.navigate('Pro' as never) },
+          { text: 'Get more', onPress: () => navigation.navigate('Pro', { fromScanner: true }) },
         ]
       );
       return;
@@ -411,7 +411,7 @@ export default function ScannerScreen() {
           </Text>
           <TouchableOpacity
             style={styles.scansBarButton}
-            onPress={() => navigation.navigate('Pro' as never)}
+            onPress={() => navigation.navigate('Pro', { fromScanner: true })}
             activeOpacity={0.8}
           >
             <Text style={styles.scansBarButtonText}>Get more</Text>

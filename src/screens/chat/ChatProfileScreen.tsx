@@ -108,24 +108,13 @@ export default function ChatProfileScreen() {
 
         {/* Actions */}
         <View style={[styles.actionsCard, { backgroundColor: theme.card }]}>
-          <TouchableOpacity style={[styles.actionItem, { borderBottomColor: theme.borderLight }]} onPress={handleClearChat}>
-            <View style={[styles.actionIcon, { backgroundColor: theme.backgroundTertiary }]}>
+          <TouchableOpacity style={styles.actionItem} onPress={handleClearChat}>
+            <View style={[styles.actionIcon, { backgroundColor: theme.backgroundSecondary }]}>
               <Trash size={20} color="#F59E0B" />
             </View>
             <View style={styles.actionContent}>
               <Text style={[styles.actionTitle, { color: theme.text }]}>Clear Chat History</Text>
               <Text style={[styles.actionSubtitle, { color: theme.textSecondary }]}>Remove all messages but keep the chat</Text>
-            </View>
-            <CaretRight size={20} color={theme.textSecondary} weight="bold" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.actionItem, styles.actionItemLast]} onPress={handleDeleteChat}>
-            <View style={[styles.actionIcon, { backgroundColor: theme.backgroundTertiary }]}>
-              <XCircle size={20} color={COLORS.error} />
-            </View>
-            <View style={styles.actionContent}>
-              <Text style={[styles.actionTitle, { color: COLORS.error }]}>Delete Chat</Text>
-              <Text style={[styles.actionSubtitle, { color: theme.textSecondary }]}>Permanently delete this chat</Text>
             </View>
             <CaretRight size={20} color={theme.textSecondary} weight="bold" />
           </TouchableOpacity>
@@ -183,7 +172,6 @@ const styles = StyleSheet.create({
   },
   actionItem: {
     flexDirection: 'row', alignItems: 'center', padding: SPACING.lg,
-    borderBottomWidth: 1, borderBottomColor: COLORS.borderLight,
   },
   actionItemLast: { borderBottomWidth: 0 },
   actionIcon: {

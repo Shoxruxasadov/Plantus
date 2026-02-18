@@ -264,7 +264,7 @@ export type RootStackParamList = {
   Repotting: undefined;
 
   // Subscription screens
-  Pro: { isFirstStep?: boolean };
+  Pro: { isFirstStep?: boolean; fromScanner?: boolean };
   OneTimeOffer: { fromFirstTime?: boolean };
 
   // Chat screens

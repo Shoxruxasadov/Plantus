@@ -16,8 +16,8 @@ export const COLORS = {
 
   // Accent colors
   accent: '#F0FDF4',
-  accentLight: '#DBFDE7',
-  accentDark: '#13A648',
+  accentLight: '#9be8b7',
+  accentDark: '#8bd6a6',
 
   // Background colors
   background: '#FFFFFF',
@@ -89,6 +89,9 @@ export const COLORS = {
 // Dark theme colors - matching Figma dark mode tokens
 export const DARK_COLORS = {
   ...COLORS,
+
+  accentLight: '#263b2d',
+  accentDark: '#2c4a36',
 
   // Background colors
   background: '#1D1D1D',

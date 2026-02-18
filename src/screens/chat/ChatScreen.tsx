@@ -363,25 +363,9 @@ export default function ChatScreen() {
         )}
 
         {/* Suggestion chips */}
-        {!loading && userMessageCount === 0 && !sending && (
+        {!loading && messages.length === 0 && (
           <View style={[styles.suggestionsWrap, { backgroundColor: theme.backgroundSecondary }, selectedImage && styles.suggestionsWrapWithImage]}>
             {INITIAL_SUGGESTIONS.map((s, i) => (
-              <TouchableOpacity
-                key={i}
-                style={[styles.suggestionChip, { backgroundColor: theme.card, borderColor: theme.borderLight }]}
-                onPress={() => handleSend(s)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.suggestionText, { color: theme.text }]}>{s}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        {/* Context suggestions after first AI response */}
-        {!loading && userMessageCount >= 1 && messages.length >= 2 && !sending && messages[messages.length - 1]?.whom === 'ai' && userMessageCount <= 2 && (
-          <View style={[styles.suggestionsWrap, { backgroundColor: theme.backgroundSecondary }, selectedImage && styles.suggestionsWrapWithImage]}>
-            {CONTEXT_SUGGESTIONS.map((s, i) => (
               <TouchableOpacity
                 key={i}
                 style={[styles.suggestionChip, { backgroundColor: theme.card, borderColor: theme.borderLight }]}

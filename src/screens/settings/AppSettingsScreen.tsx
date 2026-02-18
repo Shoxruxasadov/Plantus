@@ -121,7 +121,7 @@ export default function AppSettingsScreen() {
     { type: 'switch' as const, label: 'Notifications', value: notifications, onValueChange: handleNotificationsChange },
     { type: 'switch' as const, label: 'Vibration', value: vibration, onValueChange: setVibration },
     { type: 'switch' as const, label: 'Dark mode', value: darkMode, onValueChange: setDarkMode },
-    { type: 'link' as const, label: 'Language', onPress: () => setLanguageModalVisible(true), value: getSelectedLanguageName() },
+    // { type: 'link' as const, label: 'Language', onPress: () => setLanguageModalVisible(true), value: getSelectedLanguageName() },
   ];
 
   return (
@@ -168,7 +168,7 @@ export default function AppSettingsScreen() {
                 getItemBorderRadius(index, settingsRows.length),
               ]}
               activeOpacity={0.7}
-              onPress={item.onPress}
+              // onPress={item.onPress}
             >
               <Text style={[styles.settingLabel, { color: theme.text }]}>{item.label}</Text>
               <View style={styles.settingValue}>
