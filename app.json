@@ -19,7 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.webnum.plantus",
-      "buildNumber": "21",
+      "buildNumber": "26",
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "We need camera access to identify and diagnose your plants",
