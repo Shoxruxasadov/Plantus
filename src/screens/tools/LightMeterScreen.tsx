@@ -28,7 +28,7 @@ import { useTheme } from '../../hooks';
 
 const MIN_LUX = 0;
 const MAX_LUX = 100000;
-const CAMERA_SAMPLE_INTERVAL_MS = 500;
+const CAMERA_SAMPLE_INTERVAL_MS = 100;
 
 const LIGHT_LEVELS: { min: number; level: string; color: string; icon: string; description: string }[] = [
   { min: 0, level: 'Very Dark', color: '#1A1A2E', icon: 'moon', description: 'Almost no light' },
@@ -163,12 +163,31 @@ export default function LightMeterScreen() {
       let newLux: number;
       if (hex) {
         const lum = hexToLuminance(hex);
-        newLux = luminanceToLux(lum);
+        // Qorong'u / qopqoq kamerada past lux — luminance juda past bo'lsa 0 deb hisobla
+        if (lum < 25) {
+          newLux = 0;
+        } else {
+          newLux = luminanceToLux(lum);
+        }
       } else {
-        newLux = 0;  // no color (e.g. covered camera) → 0
+        newLux = 0;  // rang yo'q (kamera qopqoq) → 0
       }
       setLux((prev) => {
-        const blended = Math.round(prev * 0.6 + newLux * 0.4);
+        const diff = Math.abs(newLux - prev);
+        // Kamera qimirlamaganda: kichik farq bo'lsa bir xil qiymatni ushlab turish (barqaror)
+        const stable = diff < 120;
+        let blendPrev: number, blendNew: number;
+        if (stable) {
+          blendPrev = 0.92;
+          blendNew = 0.08;
+        } else if (newLux < 80) {
+          blendPrev = 0.2;
+          blendNew = 0.8;
+        } else {
+          blendPrev = 0.6;
+          blendNew = 0.4;
+        }
+        const blended = Math.round(prev * blendPrev + newLux * blendNew);
         return Math.max(MIN_LUX, Math.min(MAX_LUX, blended));
       });
     } catch (e: any) {
