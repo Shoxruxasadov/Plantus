@@ -173,7 +173,7 @@ export default function AppSettingsScreen() {
               <Text style={[styles.settingLabel, { color: theme.text }]}>{item.label}</Text>
               <View style={styles.settingValue}>
                 <Text style={[styles.settingValueText, { color: theme.textSecondary }]}>{item.value}</Text>
-                <CaretRight size={18} color={theme.textTertiary} weight="bold"/>
+                <CaretRight size={18} color={theme.textSecondary} weight="bold"/>
               </View>
             </TouchableOpacity>
           )

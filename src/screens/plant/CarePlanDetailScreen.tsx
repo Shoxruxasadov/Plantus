@@ -434,14 +434,14 @@ export default function CarePlanDetailScreen() {
           <Text style={[styles.rowLabel, { color: theme.text }]}>Repeat</Text>
           <View style={styles.rowRight}>
             <Text style={[styles.rowValue, { color: theme.textSecondary }]}>{displayRepeat}</Text>
-            <CaretRight size={18} color={theme.textTertiary} weight="bold" />
+            <CaretRight size={18} color={theme.textSecondary} weight="bold" />
           </View>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.row_end, { backgroundColor: theme.card }]} onPress={() => setNotifyVisible(true)} activeOpacity={0.7}>
           <Text style={[styles.rowLabel, { color: theme.text }]}>Notify</Text>
           <View style={styles.rowRight}>
             <Text style={[styles.rowValue, { color: theme.textSecondary }]}>{displayTime}</Text>
-            <CaretRight size={18} color={theme.textTertiary} weight="bold" />
+            <CaretRight size={18} color={theme.textSecondary} weight="bold" />
           </View>
         </TouchableOpacity>
       </View>
@@ -474,7 +474,7 @@ export default function CarePlanDetailScreen() {
                 {isSelected && <CheckCircle size={24} color={theme.primary} weight="fill" />}
               </View>
               <Text style={[styles.sheetRowText, { color: theme.text }, isSelected && styles.sheetRowTextActive]}>{opt.label}</Text>
-              {opt.label === 'Custom' && <CaretRight size={18} color={theme.textTertiary} style={{ marginLeft: 'auto' }} weight="bold" />}
+              {opt.label === 'Custom' && <CaretRight size={18} color={theme.textSecondary} style={{ marginLeft: 'auto' }} weight="bold" />}
             </TouchableOpacity>
           );
         })}

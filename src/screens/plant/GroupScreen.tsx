@@ -355,7 +355,7 @@ export default function GroupScreen() {
         <View style={[styles.optionRow, styles.optionRowDisabled, { borderBottomColor: theme.borderLight }]}>
           {icon}
           <Text style={[styles.optionRowText, { color: theme.textTertiary }]}>{label}</Text>
-          <CaretRight size={20} color={theme.textTertiary} weight="bold"/>
+          <CaretRight size={20} color={theme.textSecondary} weight="bold"/>
         </View>
       );
     }
@@ -363,7 +363,7 @@ export default function GroupScreen() {
       <TouchableOpacity style={[styles.optionRow, { borderBottomColor: theme.borderLight }]} onPress={onPress} activeOpacity={0.7}>
         {icon}
         <Text style={[styles.optionRowText, { color: theme.text }]}>{label}</Text>
-        <CaretRight size={20} color={theme.textTertiary} weight="bold"/>
+        <CaretRight size={20} color={theme.textSecondary} weight="bold"/>
       </TouchableOpacity>
     );
   };
@@ -581,7 +581,7 @@ export default function GroupScreen() {
                   activeOpacity={0.7}
                 >
                   <Text style={[styles.groupOptionText, { color: theme.text }]}>{g.name}</Text>
-                  <CaretRight size={20} color={theme.textTertiary} weight="bold"/>
+                  <CaretRight size={20} color={theme.textSecondary} weight="bold"/>
                 </TouchableOpacity>
               ))
             )}

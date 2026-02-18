@@ -71,6 +71,8 @@ export default function ScannerScreen() {
   const [scanError, setScanError] = useState(false);
   const [lastPhotoUri, setLastPhotoUri] = useState<string | null>(null);
   const [cameraAreaHeight, setCameraAreaHeight] = useState(height);
+  // Multi/Diagnose: collect up to 3 photos before analyzing
+  const [multiCaptureQueue, setMultiCaptureQueue] = useState<Array<{ base64: string; uri: string }>>([]);
 
   // Mode pill indicator: position absolute, left/width Reanimated bilan smooth transition
   const modeLayouts = useRef<Record<ScannerMode, { x: number; width: number }>>({
@@ -100,6 +102,13 @@ export default function ScannerScreen() {
     pillLeft.value = withTiming(x, config);
     pillWidth.value = withTiming(width, config);
   };
+
+  const isMultiPhotoMode = mode === 'multiple' || mode === 'diagnose';
+
+  // When switching to identify, clear multi queue
+  useEffect(() => {
+    if (mode === 'identify') setMultiCaptureQueue([]);
+  }, [mode]);
 
   useEffect(() => {
     (async () => {
@@ -187,17 +196,34 @@ export default function ScannerScreen() {
     triggerHaptic(vibration);
 
     try {
-      setLoading(true);
-      setScanError(false);
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
         base64: true,
       });
 
-      if (photo?.base64) {
-        setCapturedImage(photo.uri);
-        await processImage(photo.base64, photo.uri);
+      if (!photo?.base64) return;
+
+      if (isMultiPhotoMode) {
+        const nextQueue = [...multiCaptureQueue, { base64: photo.base64, uri: photo.uri }];
+        setMultiCaptureQueue(nextQueue);
+
+        if (nextQueue.length === 3) {
+          setLoading(true);
+          setScanError(false);
+          setCapturedImage(photo.uri);
+          await processImage(
+            nextQueue.map((p) => p.base64),
+            photo.uri
+          );
+          setMultiCaptureQueue([]);
+        }
+        return;
       }
+
+      setLoading(true);
+      setScanError(false);
+      setCapturedImage(photo.uri);
+      await processImage(photo.base64, photo.uri);
     } catch (error) {
       console.error('Capture error:', error);
       Alert.alert('Error', 'Failed to capture image');
@@ -222,13 +248,33 @@ export default function ScannerScreen() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 0.8,
         base64: true,
+        allowsMultipleSelection: isMultiPhotoMode,
+        selectionLimit: isMultiPhotoMode ? 3 : 1,
       });
 
-      if (!result.canceled && result.assets[0]?.base64) {
+      if (result.canceled) return;
+
+      const assets = result.assets.filter((a) => a.base64);
+      if (isMultiPhotoMode) {
+        if (assets.length !== 3) {
+          Alert.alert(
+            'Select 3 photos',
+            'In Multiple/Diagnose mode please select exactly 3 images of the same plant.',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
         setLoading(true);
         setScanError(false);
-        setCapturedImage(result.assets[0].uri);
-        await processImage(result.assets[0].base64, result.assets[0].uri);
+        setCapturedImage(assets[2].uri);
+        await processImage(assets.map((a) => a.base64!) as string[], assets[2].uri);
+      } else {
+        if (assets[0]?.base64) {
+          setLoading(true);
+          setScanError(false);
+          setCapturedImage(assets[0].uri);
+          await processImage(assets[0].base64, assets[0].uri);
+        }
       }
     } catch (error) {
       console.error('Pick image error:', error);
@@ -236,10 +282,10 @@ export default function ScannerScreen() {
     }
   };
 
-  const processImage = async (base64: string, uri: string) => {
+  const processImage = async (base64OrArray: string | string[], _uri?: string) => {
     try {
       const result = await identifyPlant(
-        base64,
+        base64OrArray,
         mode as ScannerMode,
         (errorMessage: string) => {
           // Show "no plant found" error state
@@ -299,6 +345,7 @@ export default function ScannerScreen() {
   const handleRetake = () => {
     setScanError(false);
     setCapturedImage(null);
+    setMultiCaptureQueue([]);
   };
 
   const toggleCameraType = () => {
@@ -438,32 +485,6 @@ export default function ScannerScreen() {
       {/* Scan Error: "There is no plant" */}
       {scanError && !loading && (
         <View style={styles.errorOverlay}>
-          {/* Top controls still visible */}
-          <View style={[styles.errorTopControls, { paddingTop: insets.top + SPACING.sm }]}>
-            <TouchableOpacity style={styles.controlButton} onPress={handleClose}>
-              <X size={26} color={theme.textLight} />
-            </TouchableOpacity>
-            <View style={styles.topRightControls}>
-              <TouchableOpacity style={styles.controlButton} onPress={toggleFlash}>
-                {enableTorch ? (
-                  <Lightning size={22} color={theme.textLight} />
-                ) : (
-                  <LightningSlash size={22} color={theme.textLight} />
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.controlButton} onPress={toggleCameraType}>
-                <CameraRotate size={22} color={theme.textLight} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Scan frame dimmed */}
-          <View style={styles.errorScanFrame}>
-            <View style={[styles.corner, styles.topLeft, { borderColor: 'rgba(255,255,255,0.3)' }]} />
-            <View style={[styles.corner, styles.topRight, { borderColor: 'rgba(255,255,255,0.3)' }]} />
-            <View style={[styles.corner, styles.bottomLeft, { borderColor: 'rgba(255,255,255,0.3)' }]} />
-            <View style={[styles.corner, styles.bottomRight, { borderColor: 'rgba(255,255,255,0.3)' }]} />
-          </View>
 
           {/* Error bottom sheet */}
           <View style={styles.errorSheet}>
@@ -537,6 +558,27 @@ export default function ScannerScreen() {
           </View>
         </View>
       )}
+
+      {/* Multi/Diagnose: show queue progress (1/3, 2/3) and thumbnails */}
+        {!scanError && isMultiPhotoMode && multiCaptureQueue.length > 0 && (
+          <View style={[styles.multiQueueBar, { backgroundColor: theme.backgroundTertiary }]}>
+            <Text style={[styles.multiQueueText, { color: theme.text }]}>
+              Photo {multiCaptureQueue.length}/3
+            </Text>
+            <View style={styles.multiQueueThumbnails}>
+              {multiCaptureQueue.map((p, i) => (
+                <Image key={i} source={{ uri: p.uri }} style={styles.multiQueueThumb} />
+              ))}
+            </View>
+            <TouchableOpacity
+              style={styles.multiQueueReset}
+              onPress={() => setMultiCaptureQueue([])}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={[styles.multiQueueResetText, { color: theme.primary }]}>Reset</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
       {/* Bottom Controls */}
       {!scanError && (
@@ -709,6 +751,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xl,
     paddingTop: SPACING.xxl,
     alignItems: 'center',
+    boxShadow: '0px 0px 10px 0px rgba(0, 0, 0, 0.1)',
   },
   errorTitle: {
     fontSize: FONT_SIZES.xxl,
@@ -901,6 +944,43 @@ const styles = StyleSheet.create({
   modeButtonTextActive: {
     color: DARK_COLORS.textLight,
     fontWeight: '700',
+  },
+  multiQueueBar: {
+    position: 'absolute',
+    bottom: 118,
+    left: '5%',
+    right: '5%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: RADIUS.lg,
+    zIndex: 15,
+    gap: SPACING.sm,
+  },
+  multiQueueText: {
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '600',
+    minWidth: 52,
+  },
+  multiQueueThumbnails: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: SPACING.xs,
+    justifyContent: 'center',
+  },
+  multiQueueThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: RADIUS.sm,
+  },
+  multiQueueReset: {
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.sm,
+  },
+  multiQueueResetText: {
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '600',
   },
   bottomControls: {
     position: 'absolute',

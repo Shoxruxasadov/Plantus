@@ -712,7 +712,7 @@ export default function MyGardenScreen() {
           <Text style={[styles.plantLabel, { color: theme.textSecondary }]} numberOfLines={1}>{item.labels[0]}</Text>
         )}
       </View>
-      <CaretRight size={20} color={theme.textTertiary} weight="bold"/>
+      <CaretRight size={20} color={theme.textSecondary} weight="bold"/>
     </TouchableOpacity>
   );
 
@@ -751,7 +751,7 @@ export default function MyGardenScreen() {
             {item.created_at ? formatDate(item.created_at) : ''}
           </Text>
         </View>
-        <CaretRight size={20} color={theme.textTertiary} weight="bold"/>
+        <CaretRight size={20} color={theme.textSecondary} weight="bold"/>
       </TouchableOpacity>
     </Swipeable>
   );
@@ -810,7 +810,7 @@ export default function MyGardenScreen() {
                     <Text style={[styles.spaceCardName, { color: theme.text }]} numberOfLines={1}>{group.name}</Text>
                     <Text style={[styles.spaceCardCount, { color: theme.textSecondary }]}>{count} {count === 1 ? 'Plant' : 'Plants'}</Text>
                   </View>
-                  <CaretRight size={18} color={theme.textTertiary} weight="bold"/>
+                  <CaretRight size={18} color={theme.textSecondary} weight="bold"/>
                 </TouchableOpacity>
               );
             })}
@@ -856,7 +856,7 @@ export default function MyGardenScreen() {
                       {(plant as any).created_at ? formatDate((plant as any).created_at) : ''}
                     </Text>
                   </View>
-                  <CaretRight size={20} color={theme.textTertiary} weight="bold"/>
+                  <CaretRight size={20} color={theme.textSecondary} weight="bold"/>
                 </TouchableOpacity>
               </Swipeable>
             ))}

@@ -116,7 +116,7 @@ export default function ChatProfileScreen() {
               <Text style={[styles.actionTitle, { color: theme.text }]}>Clear Chat History</Text>
               <Text style={[styles.actionSubtitle, { color: theme.textSecondary }]}>Remove all messages but keep the chat</Text>
             </View>
-            <CaretRight size={20} color={theme.textTertiary} weight="bold" />
+            <CaretRight size={20} color={theme.textSecondary} weight="bold" />
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.actionItem, styles.actionItemLast]} onPress={handleDeleteChat}>
@@ -127,7 +127,7 @@ export default function ChatProfileScreen() {
               <Text style={[styles.actionTitle, { color: COLORS.error }]}>Delete Chat</Text>
               <Text style={[styles.actionSubtitle, { color: theme.textSecondary }]}>Permanently delete this chat</Text>
             </View>
-            <CaretRight size={20} color={theme.textTertiary} weight="bold" />
+            <CaretRight size={20} color={theme.textSecondary} weight="bold" />
           </TouchableOpacity>
         </View>
 

@@ -8,8 +8,13 @@ import { Platform } from 'react-native';
 
 import { useAppStore } from '../store/appStore';
 
-/** Set your RevenueCat public API keys (Dashboard → API keys). Empty = disabled. */
+/**
+ * RevenueCat public API keys (Dashboard → Project → API keys).
+ * iOS: appl_xxx = production (App Store).
+ * Android: use PRODUCTION Google Play key (goog_xxx). Do NOT use test_xxx in production builds.
+ */
 const REVENUECAT_IOS_API_KEY = 'appl_nXsgTKbtRniZdWGqksLFwamdVGb';
+// TODO(production): Replace with production Android key from RevenueCat (Google Play app). test_ prefix = sandbox only.
 const REVENUECAT_ANDROID_API_KEY = 'test_PglJeJukmbdHZTxmckwTtfiTLWX';
 
 const REVENUECAT_API_KEY =

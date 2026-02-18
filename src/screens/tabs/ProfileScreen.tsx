@@ -51,6 +51,7 @@ export default function ProfileScreen() {
     temperature,
     setTemperature,
     updateUserCollection,
+    location,
   } = useAppStore();
 
   const [loggingOut, setLoggingOut] = useState(false);
@@ -157,7 +158,7 @@ export default function ProfileScreen() {
     {
       Icon: MapPin,
       title: 'Location',
-      value: 'USA',
+      value: location?.code ?? '—',
       onPress: () => navigation.navigate('Location'),
       showArrow: true,
     },
@@ -244,7 +245,7 @@ export default function ProfileScreen() {
         <Text style={[styles.settingValue, { color: theme.textSecondary }]}>{item.value}</Text>
       )}
       {item.showArrow && (
-        <CaretRight size={18} color={theme.textTertiary} weight="bold"/>
+        <CaretRight size={18} color={theme.textSecondary} weight="bold"/>
       )}
     </TouchableOpacity>
   );
@@ -259,7 +260,7 @@ export default function ProfileScreen() {
             style={styles.editButton}
             onPress={() => navigation.navigate('Personal')}
           >
-            <PencilSimple size={22} color={theme.text} />
+            <PencilSimple size={22} color={theme.textSecondary} weight='bold' />
           </TouchableOpacity>
         )}
       </View>

@@ -442,7 +442,7 @@ export default function RemindersScreen() {
                       {completed} of {plant.tasks.length} completed
                     </Text>
                   </View>
-                  <CaretRight size={18} color={theme.textTertiary} weight="bold"/>
+                  <CaretRight size={18} color={theme.textSecondary} weight="bold"/>
                 </TouchableOpacity>
 
                 {/* Tasks */}
