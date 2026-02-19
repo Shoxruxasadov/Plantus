@@ -692,7 +692,7 @@ export default function MyGardenScreen() {
       />
       <Text style={[styles.emptyTitle, { color: theme.text }]}>{t('garden.snapHistoryEmpty')}</Text>
       <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>
-        Snap plant and get more information{'\n'}and care plan
+        {t('garden.snapHistoryEmptyDescription')}
       </Text>
       <TouchableOpacity style={styles.primaryBtn} onPress={handleAddPlant}>
         <Camera size={18} color={COLORS.textLight} />
@@ -884,7 +884,7 @@ export default function MyGardenScreen() {
         resizeMode="contain"
       />
           <Text style={[styles.emptyTitle, { color: theme.text }]}>{t('garden.noReminders')}</Text>
-          <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>Add plants to your garden to see care{'\n'}reminders here.</Text>
+          <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>{t('garden.noRemindersDescription')}</Text>
           <View style={{height: 40}}></View>
         </View>
       );

@@ -169,8 +169,9 @@ const styles = StyleSheet.create({
   },
   illustration: {
     width: '100%',
-    height: 280,
+    height: 340,
     marginBottom: SPACING.lg,
+    marginTop: SPACING.lg,
   },
   badge: {
     flexDirection: 'row',

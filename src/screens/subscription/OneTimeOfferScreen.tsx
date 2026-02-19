@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -36,6 +36,36 @@ export default function OneTimeOfferScreen() {
   const setIsPro = useAppStore((s) => s.setIsPro);
   const fromFirstTime = route.params?.fromFirstTime ?? false;
   const [claiming, setClaiming] = useState(false);
+  const [priceString, setPriceString] = useState<string>('$19.99');
+  const [perWeekString, setPerWeekString] = useState<string>('$0.38/week');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const result = await getOfferings();
+      if (cancelled) return;
+      const packages: PurchasesPackage[] = [];
+      if (result.data?.current?.availablePackages?.length) {
+        packages.push(...result.data.current.availablePackages);
+      }
+      if (result.data?.all) {
+        Object.values(result.data.all).forEach((offering: any) => {
+          if (offering?.availablePackages) packages.push(...offering.availablePackages);
+        });
+      }
+      const pkg = findAnnualDiscountPackage(packages);
+      if (pkg?.product) {
+        const ps = pkg.product.priceString;
+        if (ps) setPriceString(ps);
+        if (typeof pkg.product.price === 'number') {
+          const perWeek = (pkg.product.price / 52).toFixed(2);
+          const symbol = (ps && ps.match(/^[^\d.,]+/)?.[0]?.trim()) || '$';
+          setPerWeekString(`${symbol}${perWeek}/week`);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const performClose = () => {
     if (fromFirstTime) {
@@ -150,8 +180,8 @@ export default function OneTimeOfferScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: 24, backgroundColor: theme.background }]}>
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+      <View style={[styles.header, { paddingTop: 24 }]}>
         <TouchableOpacity style={styles.closeBtn} onPress={handleClose} hitSlop={12}>
           <X size={24} color={theme.text} weight="bold" />
         </TouchableOpacity>
@@ -191,8 +221,8 @@ export default function OneTimeOfferScreen() {
                 <Text style={[styles.planDesc, { color: theme.textSecondary }]}>{t('oneTime.monthsIncluded')}</Text>
               </View>
               <View style={styles.planRight}>
-                <Text style={[styles.planPrice, { color: theme.text }]}>$19.99</Text>
-                <Text style={[styles.planPerMonth, { color: theme.textSecondary }]}>$1.32/month</Text>
+                <Text style={[styles.planPrice, { color: theme.text }]}>{priceString}</Text>
+                <Text style={[styles.planPerMonth, { color: theme.textSecondary }]}>{perWeekString}</Text>
               </View>
             </View>
           </LinearGradient>
@@ -334,6 +364,9 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.lg,
     borderRadius: RADIUS.round,
     alignItems: 'center',
+    height: 60,
+    display: 'flex',
+    justifyContent: 'center',
     marginBottom: SPACING.xl,
   },
   claimBtnText: {

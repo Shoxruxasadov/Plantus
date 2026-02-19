@@ -54,7 +54,17 @@ const FEATURES = [
 ];
 
 const PRO_CLOSE_COUNT_KEY = '@plantus_pro_close_count';
-const ONE_TIME_OFFER_SHOWN_KEY = '@plantus_onetime_offer_shown';
+/** Persisted: last date (YYYY-MM-DD) when OneTimeOffer was shown. Used to show at most once per day. */
+const ONE_TIME_OFFER_LAST_SHOWN_KEY = '@plantus_onetime_offer_last_shown';
+
+function getTodayDateString(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function shouldShowOneTimeOfferToday(lastShownDate: string | null): boolean {
+  if (!lastShownDate) return true;
+  return lastShownDate !== getTodayDateString();
+}
 
 export default function ProScreen() {
   const navigation = useNavigation<any>();
@@ -181,8 +191,8 @@ export default function ProScreen() {
     const shouldOfferOneTime = isFirstStep || fromScanner;
     if (shouldOfferOneTime) {
       try {
-        const alreadyShown = await AsyncStorage.getItem(ONE_TIME_OFFER_SHOWN_KEY);
-        if (alreadyShown === 'true') {
+        const lastShown = await AsyncStorage.getItem(ONE_TIME_OFFER_LAST_SHOWN_KEY);
+        if (!shouldShowOneTimeOfferToday(lastShown)) {
           if (isFirstStep) {
             navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
           } else {
@@ -190,7 +200,8 @@ export default function ProScreen() {
           }
           return;
         }
-        await AsyncStorage.setItem(ONE_TIME_OFFER_SHOWN_KEY, 'true');
+        const today = getTodayDateString();
+        await AsyncStorage.setItem(ONE_TIME_OFFER_LAST_SHOWN_KEY, today);
         navigation.navigate('OneTimeOffer', { fromFirstTime: isFirstStep });
       } catch {
         navigation.goBack();
@@ -313,10 +324,20 @@ export default function ProScreen() {
             <View style={[styles.heroOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.88)' }]} />
             <View style={[styles.trustImageWrap, { paddingTop: insets.top }]}>
               <Image
-                source={isDark ? require('../../../assets/Trust_darkmode.png') : require('../../../assets/Trust.png')}
+                source={require('../../../assets/Trust.png')}
                 style={styles.trustImage}
                 resizeMode="contain"
               />
+              <View style={[StyleSheet.absoluteFillObject, styles.trustTextOverlay]}>
+                <View style={styles.trustTextInner}>
+                  <Text style={[styles.trustedTitle, { color: theme.text }]} numberOfLines={1} ellipsizeMode="tail">
+                    {t('pro.trusted')}
+                  </Text>
+                  <Text style={[styles.trustedSubtitle, { color: theme.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">
+                    {t('pro.trustedByUsers')}
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
         </View>
@@ -518,6 +539,31 @@ const styles = StyleSheet.create({
     maxWidth: 280,
     height: 90,
     zIndex: 1,
+  },
+  trustTextOverlay: {
+    paddingTop: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  trustTextInner: {
+    maxWidth: SW * 0.44,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trustedTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+    maxWidth: '100%',
+  },
+  trustedSubtitle: {
+    fontSize: 13,
+    fontWeight: '400',
+    textAlign: 'center',
+    marginTop: 4,
+    maxWidth: '100%',
   },
   mainBlock: {
     flex: 1,

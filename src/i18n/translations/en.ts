@@ -150,8 +150,10 @@ export const en: Record<string, string> = {
   'garden.createSpace': 'Create a Space',
   'garden.creating': 'Creating...',
   'garden.snapHistoryEmpty': 'Snap history is empty',
+  'garden.snapHistoryEmptyDescription': 'Snap plant and get more information\nand care plan',
   'garden.snapPlant': 'Snap a Plant',
   'garden.noReminders': 'No care reminders yet',
+  'garden.noRemindersDescription': 'Add plants to your garden to see care\nreminders here.',
   'garden.spaces': 'Spaces',
   'garden.allPlants': 'All My Plants',
   'garden.delete': 'Delete',
@@ -482,6 +484,8 @@ export const en: Record<string, string> = {
   'pro.perYear': '/year',
   'pro.perWeek': '/week',
   'pro.threeDayTrial': '3-day trial',
+  'pro.trusted': 'TRUSTED',
+  'pro.trustedByUsers': 'by thousand users',
 
   // OneTimeOffer
   'oneTime.title': 'ONE TIME OFFER',
