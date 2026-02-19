@@ -13,12 +13,12 @@
     "web": "expo start --web",
     "test": "jest",
     "increment-build": "node scripts/increment-build.js",
-    "build:apk": "eas build --platform android --profile preview",
-    "build:ios": "npm run increment-build && eas build --platform ios --profile production",
-    "build:ios:no-submit": "eas build --platform ios --profile production",
-    "build:ios:preview": "npm run increment-build && eas build --platform ios --profile preview",
-    "submit:ios": "eas submit --platform ios --profile production",
-    "deploy:testflight": "npm run increment-build && eas build --platform ios --profile production --auto-submit"
+    "build:apk": "npx eas-cli@latest build --platform android --profile preview",
+    "build:ios": "npm run increment-build && npx eas-cli@latest build --platform ios --profile production",
+    "build:ios:no-submit": "npx eas-cli@latest build --platform ios --profile production",
+    "build:ios:preview": "npm run increment-build && npx eas-cli@latest build --platform ios --profile preview",
+    "submit:ios": "npx eas-cli@latest submit --platform ios --profile production",
+    "deploy:testflight": "npm run increment-build && npx eas-cli@latest build --platform ios --profile production --auto-submit"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
