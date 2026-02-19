@@ -13,12 +13,12 @@
     "web": "expo start --web",
     "test": "jest",
     "increment-build": "node scripts/increment-build.js",
-    "build:apk": "eas build --platform android --profile preview",
-    "build:ios": "npm run increment-build && eas build --platform ios --profile production",
-    "build:ios:no-submit": "eas build --platform ios --profile production",
-    "build:ios:preview": "npm run increment-build && eas build --platform ios --profile preview",
-    "submit:ios": "eas submit --platform ios --profile production",
-    "deploy:testflight": "npm run increment-build && eas build --platform ios --profile production --auto-submit"
+    "build:apk": "npx eas build --platform android --profile preview",
+    "build:ios": "npm run increment-build && npx eas build --platform ios --profile production",
+    "build:ios:no-submit": "npx eas build --platform ios --profile production",
+    "build:ios:preview": "npm run increment-build && npx eas build --platform ios --profile preview",
+    "submit:ios": "npx eas submit --platform ios --profile production",
+    "deploy:testflight": "npm run increment-build && npx eas build --platform ios --profile production --auto-submit"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -72,8 +72,9 @@
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
-    "@types/react": "18.2.79",
+    "@types/react": "^19.1.0",
     "babel-plugin-module-resolver": "^5.0.2",
+    "eas-cli": "^18.0.1",
     "typescript": "~5.3.3"
   },
   "private": true
