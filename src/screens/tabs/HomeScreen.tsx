@@ -38,15 +38,18 @@ import { RootStackParamList, Article } from "../../types";
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from "../../utils/theme";
 import { useTheme } from "../../hooks";
 import { useAppStore } from "../../store/appStore";
+import { useTranslation } from "../../i18n";
 import { fetchWeather } from "../../services/api";
 import { getArticles } from "../../services/supabase";
 import { getCurrentLocation, formatTemperature } from "../../utils/helpers";
+import { getLocalizedString } from "../../utils/articleLocale";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
+  const { t, locale } = useTranslation();
   const { theme } = useTheme();
   const {
     weather,
@@ -146,27 +149,19 @@ export default function HomeScreen() {
     navigation.navigate('Pro' as never);
   };
 
-  const getArticleTitle = (article: Article) => {
-    if (typeof article.title === "object") {
-      return (
-        (article.title as any)?.english ||
-        (article.title as any)?.en ||
-        Object.values(article.title)[0]
-      );
-    }
-    return article.title;
-  };
+  const getArticleTitle = (article: Article) =>
+    getLocalizedString(
+      typeof article.title === "object" ? (article.title as Record<string, string>) : article.title,
+      locale
+    );
 
-  const getArticleDescription = (article: Article) => {
-    if (typeof article.description === "object") {
-      return (
-        (article.description as any)?.english ||
-        (article.description as any)?.en ||
-        Object.values(article.description as any)[0]
-      );
-    }
-    return article.description;
-  };
+  const getArticleDescription = (article: Article) =>
+    getLocalizedString(
+      typeof article.description === "object"
+        ? (article.description as Record<string, string>)
+        : article.description,
+      locale
+    );
 
   return (
     <View
@@ -196,7 +191,7 @@ export default function HomeScreen() {
         {!isPro && (
           <TouchableOpacity style={styles.proButton} onPress={handlePro}>
             <CrownSimple size={18} color="#FFFFFF" weight="fill" />
-            <Text style={styles.proButtonText}>PRO</Text>
+            <Text style={styles.proButtonText}>{t('home.pro')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -226,9 +221,9 @@ export default function HomeScreen() {
         </TouchableOpacity> */}
         <View style={{ height: 12 }}></View>
 
-        {/* Scanning Tools - 2rasm: title top-left, leaves image bottom-right */}
+        {/* Scanning Tools */}
         <Text style={[styles.sectionTitle, { color: theme.text }]}>
-          Scanning Tools
+          {t('home.sectionScanning')}
         </Text>
         <View style={styles.scanningTools}>
           <TouchableOpacity
@@ -238,7 +233,7 @@ export default function HomeScreen() {
           >
             <View style={styles.scanCardTextBlock}>
               <Text style={[styles.scanCardTitle, { color: theme.text }]}>
-                Identify
+                {t('home.identify')}
               </Text>
               <Text
                 style={[
@@ -246,7 +241,7 @@ export default function HomeScreen() {
                   { color: theme.textSecondary },
                 ]}
               >
-                Know your plant
+                {t('home.identifyDesc')}
               </Text>
             </View>
             <Image
@@ -262,7 +257,7 @@ export default function HomeScreen() {
           >
             <View style={styles.scanCardTextBlock}>
               <Text style={[styles.scanCardTitle, { color: theme.text }]}>
-                Diagnose
+                {t('home.diagnose')}
               </Text>
               <Text
                 style={[
@@ -270,7 +265,7 @@ export default function HomeScreen() {
                   { color: theme.textSecondary },
                 ]}
               >
-                Fix problems early
+                {t('home.diagnoseDesc')}
               </Text>
             </View>
             <Image
@@ -281,9 +276,9 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Extra Tools - refined design */}
+        {/* Extra Tools */}
         <Text style={[styles.sectionTitle, { color: theme.text }]}>
-          Extra Tools
+          {t('home.sectionExtra')}
         </Text>
         <View style={styles.extraToolsRow}>
           <TouchableOpacity
@@ -307,12 +302,12 @@ export default function HomeScreen() {
               <User size={22} color={theme.primary} weight="regular" />
             </View>
             <Text style={[styles.extraToolTitle, { color: theme.text }]}>
-              Plant Expert
+              {t('home.plantExpert')}
             </Text>
             <Text
               style={[styles.extraToolSubtitle, { color: theme.textSecondary }]}
             >
-              Ask Oliver
+              {t('home.askOliver')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -336,12 +331,12 @@ export default function HomeScreen() {
               <Bell size={22} color={theme.primary} weight="regular" />
             </View>
             <Text style={[styles.extraToolTitle, { color: theme.text }]}>
-              Care Reminder
+              {t('home.careReminder')}
             </Text>
             <Text
               style={[styles.extraToolSubtitle, { color: theme.textSecondary }]}
             >
-              Set plan
+              {t('home.setPlan')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -365,19 +360,19 @@ export default function HomeScreen() {
               <Sun size={22} color={theme.primary} weight="regular" />
             </View>
             <Text style={[styles.extraToolTitle, { color: theme.text }]}>
-              Light Meter
+              {t('home.lightMeter')}
             </Text>
             <Text
               style={[styles.extraToolSubtitle, { color: theme.textSecondary }]}
             >
-              Check light
+              {t('home.checkLight')}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Articles for you - 2x2 grid, solid grey title area */}
+        {/* Articles for you */}
         <Text style={[styles.sectionTitle, { color: theme.text }]}>
-          Articles for you
+          {t('home.sectionArticles')}
         </Text>
 
         {loading ? (
@@ -440,7 +435,7 @@ export default function HomeScreen() {
               ]}
             />
             <Text style={[styles.searchModalTitle, { color: theme.text }]}>
-              Search by name
+              {t('home.searchByName')}
             </Text>
             <View
               style={[
@@ -452,7 +447,7 @@ export default function HomeScreen() {
               <MagnifyingGlass size={20} color={theme.textSecondary} />
               <TextInput
                 style={[styles.searchModalTextInput, { color: theme.text }]}
-                placeholder="Search Plant"
+                placeholder={t('home.searchTitle')}
                 placeholderTextColor={theme.textTertiary}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -469,7 +464,7 @@ export default function HomeScreen() {
                     { color: theme.textSecondary },
                   ]}
                 >
-                  Type a plant name and result will be appear here
+                  {t('home.searchEmpty')}
                 </Text>
               </View>
             ) : (

@@ -15,33 +15,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackParamList } from '../../types';
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
 import { useAppStore } from '../../store/appStore';
+import { useTranslation } from '../../i18n';
 
 const { width, height } = Dimensions.get('window');
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-const onboardingData = [
-  {
-    id: '1',
-    title: 'Identify the plant',
-    description:
-      'Plants can look alike. We show you the closest matches with confidence levels',
-    image: require('../../../assets/Image1.png'),
-  },
-  {
-    id: '2',
-    title: 'Care made simple',
-    description:
-      "We break plant care into clear, simple steps so you always know what to do next",
-    image: require('../../../assets/Image2.png'),
-  },
-  {
-    id: '3',
-    title: 'Never forget plant care',
-    description:
-      "Get gentle reminders and simple checklists right when your plant truly needs attention",
-    image: require('../../../assets/Image3.png'),
-  },
+const onboardingSlides = [
+  { id: '1', titleKey: 'onboarding.slide1.title' as const, descKey: 'onboarding.slide1.desc' as const, image: require('../../../assets/Image1.png') },
+  { id: '2', titleKey: 'onboarding.slide2.title' as const, descKey: 'onboarding.slide2.desc' as const, image: require('../../../assets/Image2.png') },
+  { id: '3', titleKey: 'onboarding.slide3.title' as const, descKey: 'onboarding.slide3.desc' as const, image: require('../../../assets/Image3.png') },
 ];
 
 const DOT_SIZE = 8;
@@ -90,13 +73,14 @@ const AnimatedDot = ({ index, scrollX }: { index: number; scrollX: Animated.Valu
 export default function OnboardingScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { setIsFirstStep } = useAppStore();
   const flatListRef = useRef<FlatList>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const handleNext = () => {
-    if (currentIndex < onboardingData.length - 1) {
+    if (currentIndex < onboardingSlides.length - 1) {
       flatListRef.current?.scrollToIndex({
         index: currentIndex + 1,
         animated: true,
@@ -115,13 +99,13 @@ export default function OnboardingScreen() {
     handleGetStarted();
   };
 
-  const renderItem = ({ item }: { item: typeof onboardingData[0] }) => (
+  const renderItem = ({ item }: { item: typeof onboardingSlides[0] }) => (
     <View style={styles.slide}>
       <View style={styles.imageContainer}>
         <Image source={item.image} style={styles.image} resizeMode="contain" />
       </View>
-      <Text style={styles.title}>{item.title}</Text>
-      <Text style={styles.description}>{item.description}</Text>
+      <Text style={styles.title}>{t(item.titleKey)}</Text>
+      <Text style={styles.description}>{t(item.descKey)}</Text>
     </View>
   );
 
@@ -130,14 +114,14 @@ export default function OnboardingScreen() {
       <View style={styles.header}>
         <View style={{ flex: 1 }} />
         <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-          <Text style={styles.skipText}>Skip</Text>
+          <Text style={styles.skipText}>{t('onboarding.skip')}</Text>
           <Text style={styles.skipArrow}> →</Text>
         </TouchableOpacity>
       </View>
 
       <FlatList
         ref={flatListRef}
-        data={onboardingData}
+        data={onboardingSlides}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         horizontal
@@ -155,14 +139,14 @@ export default function OnboardingScreen() {
       />
 
       <View style={styles.dotsContainer}>
-        {onboardingData.map((_, index) => (
+        {onboardingSlides.map((_, index) => (
           <AnimatedDot key={index} index={index} scrollX={scrollX} />
         ))}
       </View>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.lg }]}>
         <TouchableOpacity style={styles.button} onPress={handleNext}>
-          <Text style={styles.buttonText}>Continue</Text>
+          <Text style={styles.buttonText}>{t('onboarding.continue')}</Text>
         </TouchableOpacity>
       </View>
     </View>

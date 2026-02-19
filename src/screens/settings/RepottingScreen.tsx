@@ -12,12 +12,14 @@ import { ArrowLeft, Plus } from 'phosphor-react-native';
 
 import { RootStackParamList } from '../../types';
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
+import { useTranslation } from '../../i18n';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function RepottingScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const handleAddPlant = () => {
     navigation.navigate('Scanner', { initialMode: 'identify' });
@@ -33,19 +35,17 @@ export default function RepottingScreen() {
         >
           <ArrowLeft size={24} color={COLORS.text} weight="bold" />
         </TouchableOpacity>
-        <Text style={styles.title}>Repotting Reminder</Text>
+        <Text style={styles.title}>{t('reminderRepotting.title')}</Text>
         <View style={styles.placeholder} />
       </View>
 
       {/* Empty State */}
       <View style={styles.emptyState}>
         <Text style={styles.emptyIcon}>🪴</Text>
-        <Text style={styles.emptyText}>
-          Choose the plants you want repotting{'\n'}notification for
-        </Text>
+        <Text style={styles.emptyText}>{t('reminder.empty', { type: t('reminder.typeRepotting') })}</Text>
         <TouchableOpacity style={styles.addButton} onPress={handleAddPlant}>
           <Plus size={20} color={COLORS.textLight} />
-          <Text style={styles.addButtonText}>Add Plant</Text>
+          <Text style={styles.addButtonText}>{t('reminder.addPlant')}</Text>
         </TouchableOpacity>
       </View>
     </View>

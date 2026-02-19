@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,12 @@ import {
   Image,
   Dimensions,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { setStatusBarStyle } from 'expo-status-bar';
 
 import { COLORS, DARK_COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
+import { useTranslation } from '../../i18n';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GOOD_SIZE = Math.min(SCREEN_WIDTH - SPACING.xl * 2, 240);
@@ -23,21 +25,28 @@ const badImages = [
   require('../../../assets/images/plant_tip3.png'),
   require('../../../assets/images/plant_tip4.png'),
 ];
-const badLabels = ['Multi-species', 'Too Close', 'Too Far'];
+const BAD_LABEL_KEYS = ['infoScanner.badMulti', 'infoScanner.badClose', 'infoScanner.badFar'] as const;
 
 export default function InfoScannerScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const theme = DARK_COLORS;
+  const { t } = useTranslation();
+
+  useFocusEffect(
+    useCallback(() => {
+      setStatusBarStyle('light');
+      return () => {};
+    }, [])
+  );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top }]}>
+    <View style={[styles.container, {paddingTop: insets.top, backgroundColor: DARK_COLORS.background }]}>
       <View
         style={styles.scrollView}
       >
-        <Text style={styles.mainTitle}>Quick Scan Guide</Text>
+        <Text style={styles.mainTitle}>{t('infoScanner.title')}</Text>
         <Text style={styles.subtitle}>
-          Take a clean shot and we'll identify your plant in seconds
+          {t('infoScanner.subtitle')}
         </Text>
 
         <View style={styles.goodWrap}>
@@ -48,7 +57,7 @@ export default function InfoScannerScreen() {
           {badImages.map((img, index) => (
             <View key={index} style={styles.badItem}>
               <Image source={img} style={styles.badImage} resizeMode="contain" />
-              <Text style={styles.badLabel}>{badLabels[index]}</Text>
+              <Text style={styles.badLabel}>{t(BAD_LABEL_KEYS[index])}</Text>
             </View>
           ))}
         </View>
@@ -60,7 +69,7 @@ export default function InfoScannerScreen() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.85}
         >
-          <Text style={styles.doneButtonText}>Done</Text>
+          <Text style={styles.doneButtonText}>{t('infoScanner.done')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -87,7 +96,7 @@ const styles = StyleSheet.create({
   mainTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: DARK_COLORS.text,
     textAlign: 'center',
     marginBottom: SPACING.sm,
   },
@@ -129,10 +138,9 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: SPACING.xl,
     paddingTop: SPACING.md,
-    backgroundColor: DARK_COLORS.background,
   },
   doneButton: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: DARK_COLORS.primary,
     borderRadius: RADIUS.lg,
     paddingVertical: SPACING.lg,
     alignItems: 'center',

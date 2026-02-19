@@ -16,6 +16,7 @@ import { ArrowLeft } from 'phosphor-react-native';
 
 import { RootStackParamList } from '../../types';
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
+import { useTranslation } from '../../i18n';
 import { resetPassword } from '../../services/supabase';
 import { isValidEmail, showAlert } from '../../utils/helpers';
 
@@ -24,6 +25,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export default function ResetEmailScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -33,12 +35,12 @@ export default function ResetEmailScreen() {
     setError('');
 
     if (!email.trim()) {
-      setError('Email is required');
+      setError(t('auth.resetEmail.errorRequired'));
       return;
     }
 
     if (!isValidEmail(email)) {
-      setError('Please enter a valid email');
+      setError(t('auth.resetEmail.errorInvalid'));
       return;
     }
 
@@ -47,16 +49,16 @@ export default function ResetEmailScreen() {
       const { error: resetError } = await resetPassword(email.trim());
 
       if (resetError) {
-        showAlert('Error', resetError.message);
+        showAlert(t('auth.resetEmail.alertError'), resetError.message);
         return;
       }
 
       navigation.navigate('Success', {
-        message: 'Password reset link sent to your email',
+        message: t('auth.resetEmail.success'),
       });
     } catch (err) {
       console.error('Reset password error:', err);
-      showAlert('Error', 'An unexpected error occurred');
+      showAlert(t('auth.resetEmail.alertError'), t('auth.resetEmail.alertMessage'));
     } finally {
       setLoading(false);
     }
@@ -80,16 +82,14 @@ export default function ResetEmailScreen() {
 
         {/* Content */}
         <View style={styles.content}>
-          <Text style={styles.title}>Reset password</Text>
-          <Text style={styles.subtitle}>
-            We'll send a password reset link to your email. Check your inbox and tap the link to set a new password.
-          </Text>
+          <Text style={styles.title}>{t('auth.resetEmail.title')}</Text>
+          <Text style={styles.subtitle}>{t('auth.resetEmail.subtitle')}</Text>
 
           {/* Email Input */}
           <View style={[styles.inputWrapper, error ? styles.inputError : null]}>
             <TextInput
               style={styles.input}
-              placeholder="Enter your email"
+              placeholder={t('auth.resetEmail.placeholder')}
               placeholderTextColor={COLORS.textSecondary}
               value={email}
               onChangeText={setEmail}
@@ -109,7 +109,7 @@ export default function ResetEmailScreen() {
             {loading ? (
               <ActivityIndicator color={COLORS.textLight} />
             ) : (
-              <Text style={styles.submitButtonText}>Send reset link</Text>
+              <Text style={styles.submitButtonText}>{t('auth.resetEmail.submit')}</Text>
             )}
           </TouchableOpacity>
         </View>

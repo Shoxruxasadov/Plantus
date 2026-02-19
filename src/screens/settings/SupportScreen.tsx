@@ -17,20 +17,22 @@ import { ArrowLeft } from 'phosphor-react-native';
 
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
 import { useAppStore } from '../../store/appStore';
+import { useTranslation } from '../../i18n';
 import { supportTable } from '../../services/supabase';
-
-const emojiOptions = [
-  { emoji: '🙂', label: 'Good' },
-  { emoji: '🙁', label: 'Bad' },
-  { emoji: '😇', label: 'Great' },
-  { emoji: '😐', label: 'Neutral' },
-  { emoji: '😡', label: 'Angry' },
-];
 
 export default function SupportScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { userCollection } = useAppStore();
+
+  const emojiOptions = [
+    { emoji: '🙂', label: t('support.good') },
+    { emoji: '🙁', label: t('support.bad') },
+    { emoji: '😇', label: t('support.great') },
+    { emoji: '😐', label: t('support.neutral') },
+    { emoji: '😡', label: t('support.angry') },
+  ];
 
   const [selectedEmoji, setSelectedEmoji] = useState(2); // default: 😇
   const [message, setMessage] = useState('');
@@ -38,7 +40,7 @@ export default function SupportScreen() {
 
   const handleSubmit = async () => {
     if (!message.trim()) {
-      Alert.alert('Error', 'Please share your thoughts');
+      Alert.alert(t('support.error'), t('support.pleaseShare'));
       return;
     }
 
@@ -53,13 +55,13 @@ export default function SupportScreen() {
       });
 
       Alert.alert(
-        'Thank you!',
-        'Your feedback has been sent successfully.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
+        t('support.thankYou'),
+        t('support.success'),
+        [{ text: t('common.ok'), onPress: () => navigation.goBack() }]
       );
     } catch (error) {
       console.error('Submit feedback error:', error);
-      Alert.alert('Error', 'Failed to send feedback. Please try again.');
+      Alert.alert(t('support.error'), t('support.errorSend'));
     } finally {
       setLoading(false);
     }
@@ -75,7 +77,7 @@ export default function SupportScreen() {
         >
           <ArrowLeft size={24} color={COLORS.text} weight="bold" />
         </TouchableOpacity>
-        <Text style={styles.title}>Send Feedback</Text>
+        <Text style={styles.title}>{t('support.title')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -89,7 +91,7 @@ export default function SupportScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* Question */}
-          <Text style={styles.question}>What do you think about our app?</Text>
+          <Text style={styles.question}>{t('support.question')}</Text>
 
           {/* Emoji Selector */}
           <View style={styles.emojiRow}>
@@ -113,7 +115,7 @@ export default function SupportScreen() {
               style={styles.textArea}
               value={message}
               onChangeText={setMessage}
-              placeholder="Share your thoughts..."
+              placeholder={t('support.placeholder')}
               placeholderTextColor={COLORS.textTertiary}
               multiline
               numberOfLines={6}
@@ -132,7 +134,7 @@ export default function SupportScreen() {
             {loading ? (
               <ActivityIndicator color={COLORS.textLight} />
             ) : (
-              <Text style={styles.doneButtonText}>Done</Text>
+              <Text style={styles.doneButtonText}>{t('support.done')}</Text>
             )}
           </TouchableOpacity>
         </View>

@@ -19,6 +19,7 @@ import { ArrowLeft, CaretRight, CheckCircle } from 'phosphor-react-native';
 import { RootStackParamList } from '../../types';
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
 import { useTheme } from '../../hooks';
+import { useTranslation } from '../../i18n';
 import { useAppStore } from '../../store/appStore';
 import { updateGardenPlant, getGardenPlantById } from '../../services/supabase';
 import {
@@ -34,35 +35,35 @@ type RouteProps = RouteProp<RootStackParamList, 'CarePlanDetail'>;
 const { height: SCREEN_H } = Dimensions.get('window');
 const ANIM_DURATION = 300;
 
-// ---- Remind sheet options ----
-const REMIND_OPTIONS = [
-  { label: 'Every day', repeat: 'Everyday', customRepeat: { value: 1, type: 'day' } },
-  { label: 'Every week', repeat: 'Everyweek', customRepeat: { value: 1, type: 'week' } },
-  { label: 'Every month', repeat: 'Custom', customRepeat: { value: 1, type: 'month' } },
-  { label: 'Not Set', repeat: 'NotSet', customRepeat: null },
-  { label: 'Custom', repeat: 'Custom', customRepeat: null },
-];
+const REMIND_OPTION_KEYS = [
+  { labelKey: 'carePlan.everyDay', repeat: 'Everyday', customRepeat: { value: 1, type: 'day' } },
+  { labelKey: 'carePlan.everyWeek', repeat: 'Everyweek', customRepeat: { value: 1, type: 'week' } },
+  { labelKey: 'carePlan.everyMonth', repeat: 'Custom', customRepeat: { value: 1, type: 'month' } },
+  { labelKey: 'carePlan.notSet', repeat: 'NotSet', customRepeat: null },
+  { labelKey: 'carePlan.custom', repeat: 'Custom', customRepeat: null },
+] as const;
 
 // ---- Custom picker data ----
 const CUSTOM_NUMBERS = Array.from({ length: 30 }, (_, i) => i + 1);
 const CUSTOM_TYPES = ['Day', 'Week', 'Month', 'Year'];
+const CUSTOM_TYPE_KEYS = ['carePlan.day', 'carePlan.week', 'carePlan.month', 'carePlan.year'] as const;
 
 // ---- Picker constants ----
 const ITEM_H = 50;
 const VISIBLE_ITEMS = 5;
 const PICKER_H = ITEM_H * VISIBLE_ITEMS;
 
-// ---- Helpers ----
-function formatRepeatDisplay(repeat: string, customRepeat: any): string {
-  if (repeat === 'Everyday') return 'Everyday';
-  if (repeat === 'Everyweek') return 'Every week';
-  if (repeat === 'NotSet') return 'Not Set';
+// formatRepeatDisplay returns a key or raw string; caller passes t() for translation
+function formatRepeatDisplay(repeat: string, customRepeat: any): { type: 'key'; key: string } | { type: 'raw'; raw: string } {
+  if (repeat === 'Everyday') return { type: 'key', key: 'carePlan.everyday' };
+  if (repeat === 'Everyweek') return { type: 'key', key: 'carePlan.everyWeek' };
+  if (repeat === 'NotSet') return { type: 'key', key: 'carePlan.notSet' };
   if (customRepeat) {
     const v = customRepeat.value || 1;
     const t = customRepeat.type || 'day';
-    return `Every ${v} ${t}${v > 1 ? 's' : ''}`;
+    return { type: 'raw', raw: `Every ${v} ${t}${v > 1 ? 's' : ''}` };
   }
-  return repeat || 'Not Set';
+  return { type: 'key', key: 'carePlan.notSet' };
 }
 
 function formatTimeDisplay(date: Date): string {
@@ -264,6 +265,7 @@ export default function CarePlanDetailScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const { notifications } = useAppStore();
 
@@ -296,8 +298,8 @@ export default function CarePlanDetailScreen() {
   const handleBack = () => navigation.goBack();
 
   // ---- Remind sheet handlers ----
-  const handleRemindSelect = (option: typeof REMIND_OPTIONS[0]) => {
-    if (option.label === 'Custom') {
+  const handleRemindSelect = (option: (typeof REMIND_OPTION_KEYS)[number]) => {
+    if (option.repeat === 'Custom' && option.customRepeat === null) {
       setRemindVisible(false);
       setTimeout(() => setCustomVisible(true), 350);
       return;
@@ -324,7 +326,7 @@ export default function CarePlanDetailScreen() {
   const scheduleCareNotification = async (plantNm: string, key: string, rep: string, cr: any, time: Date, pId: string) => {
     if (!notifications) return null;
     const hasPerms = await requestNotificationPermissions();
-    if (!hasPerms) { Alert.alert('Permission required', 'Please enable notifications in Settings.'); return null; }
+    if (!hasPerms) { Alert.alert(t('carePlan.permissionRequired'), t('carePlan.enableNotifications')); return null; }
     if (rep === 'NotSet') return null;
 
     const now = new Date();
@@ -371,7 +373,7 @@ export default function CarePlanDetailScreen() {
     setSaving(true);
     try {
       const { data: currentPlant } = await getGardenPlantById(String(plantId));
-      if (!currentPlant) { Alert.alert('Error', 'Plant not found'); setSaving(false); return; }
+      if (!currentPlant) { Alert.alert(t('common.error'), t('carePlan.plantNotFound')); setSaving(false); return; }
 
       let cp = currentPlant.customcareplan;
       if (typeof cp === 'string') { try { cp = JSON.parse(cp); } catch { cp = {}; } }
@@ -396,11 +398,12 @@ export default function CarePlanDetailScreen() {
       navigation.goBack();
     } catch (error) {
       console.error('[CarePlan] Save error:', error);
-      Alert.alert('Error', 'Failed to save care plan');
+      Alert.alert(t('common.error'), t('carePlan.errorSave'));
     } finally { setSaving(false); }
   };
 
-  const displayRepeat = formatRepeatDisplay(repeat, customRepeat);
+  const displayRepeatResult = formatRepeatDisplay(repeat, customRepeat);
+  const displayRepeat = displayRepeatResult.type === 'key' ? t(displayRepeatResult.key) : displayRepeatResult.raw;
   const displayTime = formatTimeDisplay(notifyTime);
 
   const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -418,11 +421,11 @@ export default function CarePlanDetailScreen() {
 
       <View style={styles.content}>
         <View style={[styles.row_start, { backgroundColor: theme.card }]}>
-          <Text style={[styles.rowLabel, { color: theme.text }]}>Plant</Text>
+          <Text style={[styles.rowLabel, { color: theme.text }]}>{t('carePlan.plant')}</Text>
           <Text style={[styles.rowValue, { color: theme.textSecondary }]}>{plantName}</Text>
         </View>
         <View style={[styles.row, { backgroundColor: theme.card }]}>
-          <Text style={[styles.rowLabel, { color: theme.text }]}>Enable notification</Text>
+          <Text style={[styles.rowLabel, { color: theme.text }]}>{t('carePlan.enableNotification')}</Text>
           <Switch
             value={notificationEnabled}
             onValueChange={setNotificationEnabled}
@@ -431,14 +434,14 @@ export default function CarePlanDetailScreen() {
           />
         </View>
         <TouchableOpacity style={[styles.row, { backgroundColor: theme.card }]} onPress={() => setRemindVisible(true)} activeOpacity={0.7}>
-          <Text style={[styles.rowLabel, { color: theme.text }]}>Repeat</Text>
+          <Text style={[styles.rowLabel, { color: theme.text }]}>{t('carePlan.repeat')}</Text>
           <View style={styles.rowRight}>
             <Text style={[styles.rowValue, { color: theme.textSecondary }]}>{displayRepeat}</Text>
             <CaretRight size={18} color={theme.textSecondary} weight="bold" />
           </View>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.row_end, { backgroundColor: theme.card }]} onPress={() => setNotifyVisible(true)} activeOpacity={0.7}>
-          <Text style={[styles.rowLabel, { color: theme.text }]}>Notify</Text>
+          <Text style={[styles.rowLabel, { color: theme.text }]}>{t('carePlan.notify')}</Text>
           <View style={styles.rowRight}>
             <Text style={[styles.rowValue, { color: theme.textSecondary }]}>{displayTime}</Text>
             <CaretRight size={18} color={theme.textSecondary} weight="bold" />
@@ -455,26 +458,28 @@ export default function CarePlanDetailScreen() {
           activeOpacity={0.85}
           disabled={saving}
         >
-          <Text style={styles.doneBtnText}>{saving ? 'Saving...' : 'Done'}</Text>
+          <Text style={styles.doneBtnText}>{saving ? t('carePlan.saving') : t('carePlan.done')}</Text>
         </TouchableOpacity>
       </View>
 
       {/* ==================== REMIND SHEET ==================== */}
       <AnimatedBottomSheet visible={remindVisible} onClose={() => setRemindVisible(false)} theme={theme}>
-        <Text style={[styles.sheetTitle, { color: theme.text }]}>Remind</Text>
-        {REMIND_OPTIONS.map((opt) => {
-          const isSelected =
-            (opt.label === 'Every day' && repeat === 'Everyday') ||
-            (opt.label === 'Every week' && repeat === 'Everyweek') ||
-            (opt.label === 'Every month' && repeat === 'Custom' && customRepeat?.type === 'month' && customRepeat?.value === 1) ||
-            (opt.label === 'Not Set' && repeat === 'NotSet');
+        <Text style={[styles.sheetTitle, { color: theme.text }]}>{t('carePlan.remind')}</Text>
+        {REMIND_OPTION_KEYS.map((opt) => {
+          const isCustomOption = opt.labelKey === 'carePlan.custom';
+          const isSelected = isCustomOption
+            ? (repeat === 'Custom' && (customRepeat?.type !== 'month' || customRepeat?.value !== 1))
+            : (opt.repeat === 'Everyday' && repeat === 'Everyday') ||
+              (opt.repeat === 'Everyweek' && repeat === 'Everyweek') ||
+              (opt.repeat === 'Custom' && opt.customRepeat?.type === 'month' && repeat === 'Custom' && customRepeat?.type === 'month' && customRepeat?.value === 1) ||
+              (opt.repeat === 'NotSet' && repeat === 'NotSet');
           return (
-            <TouchableOpacity key={opt.label} style={[styles.sheetRow, { borderBottomColor: theme.borderLight }]} onPress={() => handleRemindSelect(opt)} activeOpacity={0.7}>
+            <TouchableOpacity key={opt.labelKey} style={[styles.sheetRow, { borderBottomColor: theme.borderLight }]} onPress={() => handleRemindSelect(opt)} activeOpacity={0.7}>
               <View style={[styles.radioCircle, { borderColor: theme.borderLight }, isSelected && styles.radioCircleActive]}>
                 {isSelected && <CheckCircle size={24} color={theme.primary} weight="fill" />}
               </View>
-              <Text style={[styles.sheetRowText, { color: theme.text }, isSelected && styles.sheetRowTextActive]}>{opt.label}</Text>
-              {opt.label === 'Custom' && <CaretRight size={18} color={theme.textSecondary} style={{ marginLeft: 'auto' }} weight="bold" />}
+              <Text style={[styles.sheetRowText, { color: theme.text }, isSelected && styles.sheetRowTextActive]}>{t(opt.labelKey)}</Text>
+              {opt.labelKey === 'carePlan.custom' && <CaretRight size={18} color={theme.textSecondary} style={{ marginLeft: 'auto' }} weight="bold" />}
             </TouchableOpacity>
           );
         })}
@@ -482,12 +487,12 @@ export default function CarePlanDetailScreen() {
 
       {/* ==================== CUSTOM REPEAT SHEET ==================== */}
       <AnimatedBottomSheet visible={customVisible} onClose={() => setCustomVisible(false)} theme={theme}>
-        <Text style={[styles.sheetTitle, { color: theme.text }]}>Repeat</Text>
+        <Text style={[styles.sheetTitle, { color: theme.text }]}>{t('carePlan.repeat')}</Text>
         <View style={styles.pickerArea}>
           <View style={[styles.pickerHighlight, { backgroundColor: theme.backgroundTertiary }]} pointerEvents="none" />
           <View style={styles.pickerRow}>
             <View style={styles.everyLabel}>
-              <Text style={[styles.everyText, { color: theme.text }]}>Every</Text>
+              <Text style={[styles.everyText, { color: theme.text }]}>{t('carePlan.every')}</Text>
             </View>
             <WheelPicker
               data={CUSTOM_NUMBERS}
@@ -500,19 +505,19 @@ export default function CarePlanDetailScreen() {
               data={CUSTOM_TYPES}
               selectedIndex={CUSTOM_TYPES.indexOf(customType)}
               onSelect={(i) => setCustomType(CUSTOM_TYPES[i])}
-              renderLabel={(t) => t}
+              renderLabel={(item) => t(CUSTOM_TYPE_KEYS[CUSTOM_TYPES.indexOf(item)])}
               textColor={theme.text}
             />
           </View>
         </View>
         <TouchableOpacity style={styles.confirmBtn} onPress={handleCustomConfirm} activeOpacity={0.85}>
-          <Text style={styles.confirmBtnText}>Confirm</Text>
+          <Text style={styles.confirmBtnText}>{t('carePlan.confirm')}</Text>
         </TouchableOpacity>
       </AnimatedBottomSheet>
 
       {/* ==================== NOTIFY TIME SHEET ==================== */}
       <AnimatedBottomSheet visible={notifyVisible} onClose={() => setNotifyVisible(false)} theme={theme}>
-        <Text style={[styles.sheetTitle, { color: theme.text }]}>Notify</Text>
+        <Text style={[styles.sheetTitle, { color: theme.text }]}>{t('carePlan.notify')}</Text>
         <View style={styles.pickerArea}>
           <View style={[styles.pickerHighlight, { backgroundColor: theme.backgroundTertiary }]} pointerEvents="none" />
           <View style={styles.pickerRow}>
@@ -538,7 +543,7 @@ export default function CarePlanDetailScreen() {
           </View>
         </View>
         <TouchableOpacity style={styles.confirmBtn} onPress={handleNotifyConfirm} activeOpacity={0.85}>
-          <Text style={styles.confirmBtnText}>Confirm</Text>
+          <Text style={styles.confirmBtnText}>{t('carePlan.confirm')}</Text>
         </TouchableOpacity>
       </AnimatedBottomSheet>
     </View>

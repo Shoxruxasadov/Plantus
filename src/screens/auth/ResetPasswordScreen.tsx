@@ -16,6 +16,7 @@ import { ArrowLeft, Eye, EyeSlash } from 'phosphor-react-native';
 
 import { RootStackParamList } from '../../types';
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
+import { useTranslation } from '../../i18n';
 import { updatePassword } from '../../services/supabase';
 import { showAlert } from '../../utils/helpers';
 
@@ -26,6 +27,7 @@ export default function ResetPasswordScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -41,15 +43,15 @@ export default function ResetPasswordScreen() {
     const newErrors: typeof errors = {};
 
     if (!password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = t('auth.resetPassword.errorRequired');
     } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = t('auth.resetPassword.errorMin');
     }
 
     if (!confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
+      newErrors.confirmPassword = t('auth.resetPassword.errorConfirm');
     } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = t('auth.resetPassword.errorMatch');
     }
 
     setErrors(newErrors);
@@ -64,16 +66,16 @@ export default function ResetPasswordScreen() {
       const { error } = await updatePassword(password);
 
       if (error) {
-        showAlert('Error', error.message);
+        showAlert(t('common.error'), error.message);
         return;
       }
 
       navigation.navigate('Success', {
-        message: 'You successfully changed your password and now you can login to your account',
+        message: t('auth.resetPassword.success'),
       });
     } catch (err) {
       console.error('Update password error:', err);
-      showAlert('Error', 'An unexpected error occurred');
+      showAlert(t('common.error'), t('auth.resetPassword.alertError'));
     } finally {
       setLoading(false);
     }
@@ -97,16 +99,14 @@ export default function ResetPasswordScreen() {
 
         {/* Content */}
         <View style={styles.content}>
-          <Text style={styles.title}>Create new password</Text>
-          <Text style={styles.subtitle}>
-            Please think strong password to your account
-          </Text>
+          <Text style={styles.title}>{t('auth.resetPassword.title')}</Text>
+          <Text style={styles.subtitle}>{t('auth.resetPassword.subtitle')}</Text>
 
           {/* Password Input */}
           <View style={[styles.inputWrapper, errors.password && styles.inputError]}>
             <TextInput
               style={styles.input}
-              placeholder="Password"
+              placeholder={t('auth.resetPassword.password')}
               placeholderTextColor={COLORS.textSecondary}
               value={password}
               onChangeText={setPassword}
@@ -132,7 +132,7 @@ export default function ResetPasswordScreen() {
           <View style={[styles.inputWrapper, errors.confirmPassword && styles.inputError]}>
             <TextInput
               style={styles.input}
-              placeholder="Repeat password"
+              placeholder={t('auth.resetPassword.repeat')}
               placeholderTextColor={COLORS.textSecondary}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
@@ -163,7 +163,7 @@ export default function ResetPasswordScreen() {
             {loading ? (
               <ActivityIndicator color={COLORS.textLight} />
             ) : (
-              <Text style={styles.submitButtonText}>Set new password</Text>
+              <Text style={styles.submitButtonText}>{t('auth.resetPassword.submit')}</Text>
             )}
           </TouchableOpacity>
         </View>

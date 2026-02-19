@@ -19,6 +19,7 @@ const OLIVER_IMG = require('../../../assets/images/Oliver.png');
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
 import { useTheme } from '../../hooks';
 import { useAppStore } from '../../store/appStore';
+import { useTranslation } from '../../i18n';
 import { clearAIChat, deleteAIChat } from '../../services/supabase';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -26,26 +27,27 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export default function ChatProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const { userCollection, setChatCreated, setAssistantChatId } = useAppStore();
 
   const handleClearChat = () => {
     Alert.alert(
-      'Clear Chat History',
-      'Are you sure you want to clear all chat history? This cannot be undone.',
+      t('chatProfile.alertClearTitle'),
+      t('chatProfile.alertClearMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Clear',
+          text: t('chatProfile.clear'),
           style: 'destructive',
           onPress: async () => {
             try {
               await clearAIChat(userCollection.id);
-              Alert.alert('Success', 'Chat history cleared');
+              Alert.alert(t('common.success'), t('chatProfile.clearSuccess'));
               navigation.goBack();
             } catch (error) {
               console.error('Clear chat error:', error);
-              Alert.alert('Error', 'Failed to clear chat history');
+              Alert.alert(t('common.error'), t('chatProfile.clearError'));
             }
           },
         },
@@ -55,12 +57,12 @@ export default function ChatProfileScreen() {
 
   const handleDeleteChat = () => {
     Alert.alert(
-      'Delete Chat',
-      'Are you sure you want to delete this chat? This cannot be undone.',
+      t('chatProfile.deleteChat'),
+      t('chatProfile.alertDeleteMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('chatProfile.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -71,7 +73,7 @@ export default function ChatProfileScreen() {
               navigation.goBack();
             } catch (error) {
               console.error('Delete chat error:', error);
-              Alert.alert('Error', 'Failed to delete chat');
+              Alert.alert(t('common.error'), t('chatProfile.deleteError'));
             }
           },
         },
@@ -86,7 +88,7 @@ export default function ChatProfileScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <ArrowLeft size={24} color={theme.text} weight="bold" />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: theme.text }]}>Chat Settings</Text>
+        <Text style={[styles.title, { color: theme.text }]}>{t('chatProfile.title')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -98,11 +100,10 @@ export default function ChatProfileScreen() {
         {/* Profile Card */}
         <View style={[styles.profileCard, { backgroundColor: theme.card }]}>
           <Image source={OLIVER_IMG} style={[styles.avatar, { backgroundColor: theme.backgroundTertiary }]} resizeMode="cover" />
-          <Text style={[styles.name, { color: theme.text }]}>Mr. Oliver</Text>
-          <Text style={[styles.role, { color: theme.primary }]}>AI Botanist</Text>
+          <Text style={[styles.name, { color: theme.text }]}>{t('chatProfile.mrOliver')}</Text>
+          <Text style={[styles.role, { color: theme.primary }]}>{t('chatProfile.aiBotanist')}</Text>
           <Text style={[styles.description, { color: theme.textSecondary }]}>
-            Your personal plant expert, available 24/7 to help with plant care,
-            identification, and diagnosis.
+            {t('chatProfile.description')}
           </Text>
         </View>
 
@@ -113,8 +114,8 @@ export default function ChatProfileScreen() {
               <Trash size={20} color="#F59E0B" />
             </View>
             <View style={styles.actionContent}>
-              <Text style={[styles.actionTitle, { color: theme.text }]}>Clear Chat History</Text>
-              <Text style={[styles.actionSubtitle, { color: theme.textSecondary }]}>Remove all messages but keep the chat</Text>
+              <Text style={[styles.actionTitle, { color: theme.text }]}>{t('chatProfile.clearHistory')}</Text>
+              <Text style={[styles.actionSubtitle, { color: theme.textSecondary }]}>{t('chatProfile.clearHistoryDesc')}</Text>
             </View>
             <CaretRight size={20} color={theme.textSecondary} weight="bold" />
           </TouchableOpacity>
@@ -122,13 +123,8 @@ export default function ChatProfileScreen() {
 
         {/* Tips */}
         <View style={[styles.tipsCard, { backgroundColor: theme.card }]}>
-          <Text style={[styles.tipsTitle, { color: theme.text }]}>Tips for Better Results</Text>
-          {[
-            'Be specific with your questions',
-            'Include photos for identification',
-            'Describe symptoms in detail',
-            "Mention your plant's location",
-          ].map((tip, index) => (
+          <Text style={[styles.tipsTitle, { color: theme.text }]}>{t('chatProfile.tips')}</Text>
+          {[t('chatProfile.tip1'), t('chatProfile.tip2'), t('chatProfile.tip3'), t('chatProfile.tip4')].map((tip, index) => (
             <View key={index} style={styles.tipItem}>
               <CheckCircle size={18} color={theme.primary} weight="fill" />
               <Text style={[styles.tipText, { color: theme.textSecondary }]}>{tip}</Text>

@@ -30,6 +30,7 @@ import {
 } from "../../services/supabase";
 import { setupGardenNotificationsForUser } from "../../services/notifications";
 import { useAppStore } from "../../store/appStore";
+import { useTranslation } from "../../i18n";
 import { useTheme } from "../../hooks";
 import { isValidEmail, showAlert } from "../../utils/helpers";
 
@@ -49,6 +50,7 @@ try {
 export default function SignInScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const {
     setUser,
     setSession,
@@ -74,15 +76,15 @@ export default function SignInScreen() {
     const newErrors: { email?: string; password?: string } = {};
 
     if (!email.trim()) {
-      newErrors.email = "Email is required";
+      newErrors.email = t("auth.signIn.errorEmailRequired");
     } else if (!isValidEmail(email)) {
-      newErrors.email = "Please enter a valid email";
+      newErrors.email = t("auth.signIn.errorEmailInvalid");
     }
 
     if (!password) {
-      newErrors.password = "Password is required";
+      newErrors.password = t("auth.signIn.errorPasswordRequired");
     } else if (password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
+      newErrors.password = t("auth.signIn.errorPasswordMin");
     }
 
     setErrors(newErrors);
@@ -97,7 +99,7 @@ export default function SignInScreen() {
       const { data, error } = await signInWithEmail(email.trim(), password);
 
       if (error) {
-        showAlert("Sign In Failed", error.message);
+        showAlert(t("auth.signIn.alertError"), error.message);
         return;
       }
 
@@ -129,7 +131,7 @@ export default function SignInScreen() {
       }
     } catch (error) {
       console.error("Sign in error:", error);
-      showAlert("Error", "An unexpected error occurred");
+      showAlert(t('common.error'), t('auth.signIn.alertUnexpected'));
     } finally {
       setLoading(false);
     }
@@ -187,10 +189,7 @@ export default function SignInScreen() {
 
   const handleGoogleSignIn = async () => {
     if (!GoogleSignin) {
-      showAlert(
-        "Not Available",
-        "Google Sign-In requires a development build.",
-      );
+      showAlert(t('auth.signIn.alertGoogleNotAvailable'), t('auth.signIn.alertGoogleNotAvailableMessage'));
       return;
     }
     try {
@@ -219,7 +218,7 @@ export default function SignInScreen() {
       }
     } catch (error: any) {
       console.error("Google sign-in error:", error);
-      showAlert("Error", "Failed to sign in with Google");
+      showAlert(t('common.error'), t('auth.signIn.alertGoogleError'));
     } finally {
       setSocialLoading(null);
     }
@@ -257,7 +256,7 @@ export default function SignInScreen() {
     } catch (error: any) {
       if (error.code !== "ERR_REQUEST_CANCELED") {
         console.error("Apple sign-in error:", error);
-        showAlert("Error", "Failed to sign in with Apple");
+        showAlert(t("common.error"), t("auth.signIn.alertAppleError"));
       }
     } finally {
       setSocialLoading(null);
@@ -291,10 +290,8 @@ export default function SignInScreen() {
 
           {/* Title */}
           <View style={styles.titleContainer}>
-            <Text style={[styles.title, { color: theme.text }]}>Sign In</Text>
-            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-              To continue using our app create account first
-            </Text>
+            <Text style={[styles.title, { color: theme.text }]}>{t("auth.signIn.title")}</Text>
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{t("auth.signIn.subtitle")}</Text>
           </View>
 
           {/* Form */}
@@ -309,7 +306,7 @@ export default function SignInScreen() {
             >
               <TextInput
                 style={[styles.input, { color: theme.text }]}
-                placeholder="Enter your email"
+                placeholder={t("auth.signIn.emailPlaceholder")}
                 placeholderTextColor={theme.textSecondary}
                 value={email}
                 onChangeText={setEmail}
@@ -332,7 +329,7 @@ export default function SignInScreen() {
             >
               <TextInput
                 style={[styles.input, { color: theme.text }]}
-                placeholder="Password"
+                placeholder={t("auth.signIn.passwordPlaceholder")}
                 placeholderTextColor={theme.textSecondary}
                 value={password}
                 onChangeText={setPassword}
@@ -349,7 +346,7 @@ export default function SignInScreen() {
               style={styles.forgotPassword}
               onPress={handleForgotPassword}
             >
-              <Text style={[styles.forgotPasswordText, { color: theme.primary }]}>Forgot password?</Text>
+              <Text style={[styles.forgotPasswordText, { color: theme.primary }]}>{t("auth.signIn.forgotPassword")}</Text>
             </TouchableOpacity>
 
             {/* Sign In Button */}
@@ -361,14 +358,14 @@ export default function SignInScreen() {
               {loading ? (
                 <ActivityIndicator color={theme.textLight} />
               ) : (
-                <Text style={[styles.signInButtonText, { color: theme.textLight }]}>Sign In</Text>
+                <Text style={[styles.signInButtonText, { color: theme.textLight }]}>{t("auth.signIn.submit")}</Text>
               )}
             </TouchableOpacity>
 
             {/* Divider */}
             <View style={styles.divider}>
               <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
-              <Text style={[styles.dividerText, { color: theme.textSecondary }]}>or</Text>
+              <Text style={[styles.dividerText, { color: theme.textSecondary }]}>{t('auth.signIn.or')}</Text>
               <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
             </View>
 
@@ -388,7 +385,7 @@ export default function SignInScreen() {
                       style={styles.googleIcon}
                     />
                     <Text style={[styles.appleButtonText, { color: theme.background }]}>
-                      Continue with Apple
+                      {t('auth.signIn.continueApple')}
                     </Text>
                   </>
                 )}
@@ -409,9 +406,9 @@ export default function SignInScreen() {
                     source={require("../../../assets/google.png")}
                     style={styles.googleIcon}
                   />
-                  <Text style={[styles.socialButtonText, { color: theme.text }]}>
-                    Continue with Google
-                  </Text>
+<Text style={[styles.socialButtonText, { color: theme.text }]}>
+                  {t('auth.signIn.continueGoogle')}
+                </Text>
                 </>
               )}
             </TouchableOpacity>

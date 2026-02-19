@@ -16,6 +16,7 @@ import { ArrowLeft } from 'phosphor-react-native';
 
 import { RootStackParamList } from '../../types';
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
+import { useTranslation } from '../../i18n';
 import { showAlert } from '../../utils/helpers';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -23,6 +24,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export default function VerifyEmailScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -56,7 +58,7 @@ export default function VerifyEmailScreen() {
 
   const handleVerify = async () => {
     if (!code.trim()) {
-      showAlert('Error', 'Please enter the verification code');
+      showAlert(t('common.error'), t('auth.verifyEmail.errorRequired'));
       return;
     }
 
@@ -66,7 +68,7 @@ export default function VerifyEmailScreen() {
       navigation.navigate('ResetPassword', {});
     } catch (err) {
       console.error('Verify error:', err);
-      showAlert('Error', 'Invalid verification code');
+      showAlert(t('common.error'), t('auth.verifyEmail.errorInvalid'));
     } finally {
       setLoading(false);
     }
@@ -76,7 +78,7 @@ export default function VerifyEmailScreen() {
     if (!canResend) return;
     startCountdown();
     // TODO: Implement resend logic
-    showAlert('Code Sent', 'A new verification code has been sent to your email');
+    showAlert(t('auth.verifyEmail.codeSent'), t('auth.verifyEmail.codeSentMessage'));
   };
 
   return (
@@ -97,14 +99,14 @@ export default function VerifyEmailScreen() {
 
         {/* Content */}
         <View style={styles.content}>
-          <Text style={styles.title}>Verify your email</Text>
-          <Text style={styles.subtitle}>We sent a code to your email</Text>
+          <Text style={styles.title}>{t('auth.verifyEmail.title')}</Text>
+          <Text style={styles.subtitle}>{t('auth.verifyEmail.subtitle')}</Text>
 
           {/* Code Input */}
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
-              placeholder="Enter a code"
+              placeholder={t('auth.verifyEmail.placeholder')}
               placeholderTextColor={COLORS.textSecondary}
               value={code}
               onChangeText={setCode}
@@ -122,7 +124,7 @@ export default function VerifyEmailScreen() {
             {loading ? (
               <ActivityIndicator color={COLORS.textLight} />
             ) : (
-              <Text style={styles.verifyButtonText}>Verify</Text>
+              <Text style={styles.verifyButtonText}>{t('auth.verifyEmail.verify')}</Text>
             )}
           </TouchableOpacity>
 
@@ -130,15 +132,11 @@ export default function VerifyEmailScreen() {
           <View style={styles.resendContainer}>
             {canResend ? (
               <TouchableOpacity onPress={handleResendCode}>
-                <Text style={styles.resendText}>
-                  Resend code
-                </Text>
+                <Text style={styles.resendText}>{t('auth.verifyEmail.resend')}</Text>
               </TouchableOpacity>
             ) : (
               <Text style={styles.countdownText}>
-                Resend code in{' '}
-                <Text style={styles.countdownNumber}>{countdown}</Text>
-                {' '}seconds
+                {t('auth.verifyEmail.resendIn', { seconds: countdown })}
               </Text>
             )}
           </View>

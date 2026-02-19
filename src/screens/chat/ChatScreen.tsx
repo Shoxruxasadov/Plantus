@@ -22,6 +22,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { RootStackParamList } from '../../types';
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
 import { useTheme } from '../../hooks';
+import { useTranslation } from '../../i18n';
 import { useAppStore } from '../../store/appStore';
 import { getAIChat, updateAIChat, createAIChat } from '../../services/supabase';
 import { sendChatMessage } from '../../services/api';
@@ -43,22 +44,8 @@ interface SupaMessage {
   hasPhoto: boolean;
 }
 
-// ---- Suggestion chips for empty state ----
-const INITIAL_SUGGESTIONS = [
-  '🌿 Should I water now or wait?',
-  '😟 Is this normal?',
-  '🍂 Why are the leaves turning yellow?',
-  '🌟 Is this plant safe for pets?',
-  '🌺 Any tips for today?',
-];
-
-// Context-aware suggestions shown after first user message
-const CONTEXT_SUGGESTIONS = [
-  '🌱 Leaves are yellowing',
-  '😞 Leaves look droopy',
-  '🍂 Brown spots',
-  '🌟 Leaves look sunburned',
-];
+const INITIAL_SUGGESTION_KEYS = ['chat.suggestion1', 'chat.suggestion2', 'chat.suggestion3', 'chat.suggestion4', 'chat.suggestion5'] as const;
+const CONTEXT_SUGGESTION_KEYS = ['chat.context1', 'chat.context2', 'chat.context3', 'chat.context4'] as const;
 
 function formatTime(dateStr: string) {
   const d = new Date(dateStr);
@@ -73,6 +60,7 @@ export default function ChatScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const { userCollection, darkMode, assistantChatId, setAssistantChatId, setChatCreated } = useAppStore();
   const flatListRef = useRef<FlatList>(null);
@@ -116,7 +104,7 @@ export default function ChatScreen() {
           setMessages(data.messages as SupaMessage[]);
         } else {
           const greeting: SupaMessage = {
-            message: "Hello! I'm Herbely Ai assistant. How can I help you today? I'm ready to help you!",
+            message: t('chat.greeting'),
             whom: 'ai',
             created: new Date().toISOString(),
             photo: '',
@@ -134,7 +122,7 @@ export default function ChatScreen() {
         await setAssistantChatId(newChat.id);
         await setChatCreated(true);
         const greeting: SupaMessage = {
-          message: "Hello! I'm Herbely Ai assistant. How can I help you today? I'm ready to help you!",
+          message: t('chat.greeting'),
           whom: 'ai',
           created: new Date().toISOString(),
           photo: '',
@@ -216,7 +204,7 @@ export default function ChatScreen() {
       } else {
         // Error fallback
         const errMsg: SupaMessage = {
-          message: "I'm having trouble connecting right now. Please try again in a moment.",
+          message: t('chat.errorConnecting'),
           whom: 'ai',
           created: new Date().toISOString(),
           photo: '',
@@ -299,9 +287,9 @@ export default function ChatScreen() {
           <ArrowLeft size={24} color={theme.text} weight="bold" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>Mr Oliver</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>{t('chat.mrOliver')}</Text>
           <View style={styles.onlineRow}>
-            <Text style={[styles.onlineText, { color: theme.primary }]}>Always Online</Text>
+            <Text style={[styles.onlineText, { color: theme.primary }]}>{t('chat.alwaysOnline')}</Text>
             <View style={[styles.onlineDot, { backgroundColor: theme.primary }]} />
           </View>
         </View>
@@ -365,14 +353,14 @@ export default function ChatScreen() {
         {/* Suggestion chips */}
         {!loading && messages.length === 0 && (
           <View style={[styles.suggestionsWrap, { backgroundColor: theme.backgroundSecondary }, selectedImage && styles.suggestionsWrapWithImage]}>
-            {INITIAL_SUGGESTIONS.map((s, i) => (
+            {INITIAL_SUGGESTION_KEYS.map((key, i) => (
               <TouchableOpacity
                 key={i}
                 style={[styles.suggestionChip, { backgroundColor: theme.card, borderColor: theme.borderLight }]}
-                onPress={() => handleSend(s)}
+                onPress={() => handleSend(t(key))}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.suggestionText, { color: theme.text }]}>{s}</Text>
+                <Text style={[styles.suggestionText, { color: theme.text }]}>{t(key)}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -398,7 +386,7 @@ export default function ChatScreen() {
           <View style={[styles.inputWrap, { backgroundColor: theme.backgroundSecondary }]}>
             <TextInput
               style={[styles.input, { backgroundColor: 'transparent', color: theme.text }]}
-              placeholder="Message"
+              placeholder={t('chat.placeholder')}
               placeholderTextColor={theme.textSecondary}
               value={inputText}
               onChangeText={setInputText}

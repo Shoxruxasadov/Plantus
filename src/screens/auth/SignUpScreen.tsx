@@ -21,6 +21,7 @@ import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
 import { signUpWithEmail } from '../../services/supabase';
 import { setupGardenNotificationsForUser } from '../../services/notifications';
 import { useAppStore } from '../../store/appStore';
+import { useTranslation } from '../../i18n';
 import { useTheme } from '../../hooks';
 import { isValidEmail, showAlert } from '../../utils/helpers';
 
@@ -29,6 +30,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export default function SignUpScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { setUser, setSession, setUserCollection, notifications } = useAppStore();
   const { theme } = useTheme();
 
@@ -48,27 +50,27 @@ export default function SignUpScreen() {
     const newErrors: typeof errors = {};
 
     if (!name.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = t('auth.signUp.errorNameRequired');
     } else if (name.trim().length < 2) {
-      newErrors.name = 'Name must be at least 2 characters';
+      newErrors.name = t('auth.signUp.errorNameMin');
     }
 
     if (!email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = t('auth.signUp.errorEmailRequired');
     } else if (!isValidEmail(email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = t('auth.signUp.errorEmailInvalid');
     }
 
     if (!password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = t('auth.signUp.errorPasswordRequired');
     } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = t('auth.signUp.errorPasswordMin');
     }
 
     if (!confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
+      newErrors.confirmPassword = t('auth.signUp.errorConfirm');
     } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = t('auth.signUp.errorMatch');
     }
 
     setErrors(newErrors);
@@ -87,7 +89,7 @@ export default function SignUpScreen() {
       );
 
       if (error) {
-        showAlert('Sign Up Failed', error.message);
+        showAlert(t('auth.signUp.alertFailed'), error.message);
         return;
       }
 
@@ -104,12 +106,12 @@ export default function SignUpScreen() {
         navigation.replace('Pro', { isFirstStep: true });
       } else if (data.user && !data.session) {
         navigation.navigate('Success', {
-          message: 'Please check your email to confirm your account',
+          message: t('auth.signUp.successMessage'),
         });
       }
     } catch (error) {
       console.error('Sign up error:', error);
-      showAlert('Error', 'An unexpected error occurred');
+      showAlert(t('common.error'), t('auth.signUp.alertUnexpected'));
     } finally {
       setLoading(false);
     }
@@ -138,10 +140,8 @@ export default function SignUpScreen() {
 
           {/* Title */}
           <View style={styles.titleContainer}>
-            <Text style={[styles.title, { color: theme.text }]}>Sign Up</Text>
-            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-              To continue using our app create account first
-            </Text>
+            <Text style={[styles.title, { color: theme.text }]}>{t('auth.signUp.title')}</Text>
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{t('auth.signUp.subtitle')}</Text>
           </View>
 
           {/* Form */}
@@ -150,7 +150,7 @@ export default function SignUpScreen() {
             <View style={[styles.inputWrapper, { backgroundColor: theme.backgroundSecondary, borderColor: errors.name ? theme.error : 'transparent' }, errors.name && styles.inputError]}>
               <TextInput
                 style={[styles.input, { color: theme.text }]}
-                placeholder="Enter your name"
+                placeholder={t('auth.signUp.namePlaceholder')}
                 placeholderTextColor={theme.textSecondary}
                 value={name}
                 onChangeText={setName}
@@ -163,7 +163,7 @@ export default function SignUpScreen() {
             <View style={[styles.inputWrapper, { backgroundColor: theme.backgroundSecondary, borderColor: errors.email ? theme.error : 'transparent' }, errors.email && styles.inputError]}>
               <TextInput
                 style={[styles.input, { color: theme.text }]}
-                placeholder="Enter your email"
+                placeholder={t('auth.signUp.emailPlaceholder')}
                 placeholderTextColor={theme.textSecondary}
                 value={email}
                 onChangeText={setEmail}
@@ -178,7 +178,7 @@ export default function SignUpScreen() {
             <View style={[styles.inputWrapper, { backgroundColor: theme.backgroundSecondary, borderColor: errors.password ? theme.error : 'transparent' }, errors.password && styles.inputError]}>
               <TextInput
                 style={[styles.input, { color: theme.text }]}
-                placeholder="Password"
+                placeholder={t('auth.signUp.passwordPlaceholder')}
                 placeholderTextColor={theme.textSecondary}
                 value={password}
                 onChangeText={setPassword}
@@ -192,7 +192,7 @@ export default function SignUpScreen() {
             <View style={[styles.inputWrapper, { backgroundColor: theme.backgroundSecondary, borderColor: errors.confirmPassword ? theme.error : 'transparent' }, errors.confirmPassword && styles.inputError]}>
               <TextInput
                 style={[styles.input, { color: theme.text }]}
-                placeholder="Repeat password"
+                placeholder={t('auth.signUp.repeatPasswordPlaceholder')}
                 placeholderTextColor={theme.textSecondary}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
@@ -213,7 +213,7 @@ export default function SignUpScreen() {
               {loading ? (
                 <ActivityIndicator color={theme.textLight} />
               ) : (
-                <Text style={[styles.signUpButtonText, { color: theme.textLight }]}>Sign Up</Text>
+                <Text style={[styles.signUpButtonText, { color: theme.textLight }]}>{t('auth.signUp.submit')}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -221,19 +221,19 @@ export default function SignUpScreen() {
           {/* Terms */}
           <View style={styles.termsContainer}>
             <Text style={[styles.termsText, { color: theme.textSecondary }]}>
-              By continuing, you agree to our{' '}
+              {t('auth.signUp.termsPrefix')}{' '}
               <Text
                 style={[styles.termsLink, { color: theme.primary }]}
                 onPress={() => Linking.openURL('https://plantus.app/terms-of-use/')}
               >
-                Terms of Service
+                {t('auth.signUp.termsOfService')}
               </Text>{' '}
-              and{'\n'}
+              {t('auth.signUp.and')}{'\n'}
               <Text
                 style={[styles.termsLink, { color: theme.primary }]}
                 onPress={() => Linking.openURL('https://plantus.app/privacy-policy/')}
               >
-                Privacy Policy
+                {t('auth.signUp.privacyPolicy')}
               </Text>
             </Text>
           </View>

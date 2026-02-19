@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { NativeModules, Platform, Settings } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import {
@@ -9,6 +10,65 @@ import {
   Language,
   Reminder,
 } from '../types';
+
+export const SUPPORTED_LANGUAGES: Language[] = [
+  'English (US)',
+  'German (Deutsch)',
+  'French (Français)',
+  'Spanish (Español)',
+  'Portuguese (Português)',
+  'Japanese (日本語)',
+  'Korean (한국어)',
+  'Chinese Simplified',
+  'Thai (ไทย)',
+  'Indonesian (Bahasa)',
+];
+
+function localeToLanguage(languageCode: string, languageTag?: string): Language {
+  const code = (languageCode || '').toLowerCase();
+  const tag = (languageTag || '').toLowerCase();
+  if (code.startsWith('en')) return 'English (US)';
+  if (code === 'de') return 'German (Deutsch)';
+  if (code === 'fr') return 'French (Français)';
+  if (code === 'es') return 'Spanish (Español)';
+  if (code === 'pt') return 'Portuguese (Português)';
+  if (code === 'ja') return 'Japanese (日本語)';
+  if (code === 'ko') return 'Korean (한국어)';
+  if (code === 'zh' || tag.includes('hans')) return 'Chinese Simplified';
+  if (code === 'th') return 'Thai (ไทย)';
+  if (code === 'id') return 'Indonesian (Bahasa)';
+  return 'English (US)';
+}
+
+/** Qurilma tilini expo-localization ishlamasa (Expo Go / eski build) o‘qish. */
+function getDeviceLocaleFallback(): string {
+  try {
+    if (Platform.OS === 'ios') {
+      const appleLocale = typeof Settings?.get === 'function' ? Settings.get('AppleLocale') : null;
+      const appleLangs = typeof Settings?.get === 'function' ? Settings.get('AppleLanguages') : null;
+      const raw = (typeof appleLocale === 'string' ? appleLocale : null) ?? (Array.isArray(appleLangs) ? appleLangs[0] : null);
+      if (raw && typeof raw === 'string') {
+        const code = raw.split(/[-_]/)[0]?.toLowerCase() ?? '';
+        return localeToLanguage(code, raw);
+      }
+      const settings = NativeModules.SettingsManager?.settings;
+      const fallbackRaw = settings?.AppleLocale ?? settings?.AppleLanguages?.[0];
+      if (fallbackRaw && typeof fallbackRaw === 'string') {
+        const code = fallbackRaw.split(/[-_]/)[0]?.toLowerCase() ?? '';
+        return localeToLanguage(code, fallbackRaw);
+      }
+    } else {
+      const locale = NativeModules.I18nManager?.localeIdentifier;
+      if (locale && typeof locale === 'string') {
+        const code = locale.split(/[-_]/)[0]?.toLowerCase() ?? '';
+        return localeToLanguage(code, locale);
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return 'English (US)';
+}
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -142,7 +202,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   weather: defaultWeather,
   city: '',
   temperature: 'metric',
-  language: 'English',
+  language: 'English (US)',
   notifications: true,
   vibration: true,
   darkMode: false,
@@ -369,7 +429,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           : { id: '', name: '', email: '' },
         location: location ? JSON.parse(location) : defaultLocation,
         temperature: (temperature as TemperatureUnit) || 'metric',
-        language: (language as Language) || 'English',
+        language: (language as Language) || 'English (US)',
         wateringReminder: wateringReminder
           ? JSON.parse(wateringReminder)
           : { ...defaultReminder },
@@ -386,6 +446,22 @@ export const useAppStore = create<AppState>((set, get) => ({
         city: city ?? '',
         remainingScans: remainingScans != null && !Number.isNaN(parseInt(remainingScans, 10)) ? parseInt(remainingScans, 10) : 5,
       });
+
+      // Til: avval expo-localization (per-app), bo‘lmasa qurilma tili (Settings → General → Language).
+      try {
+        const { getLocales } = require('expo-localization');
+        const locales = getLocales();
+        const first = locales?.[0];
+        const systemLang = first
+          ? localeToLanguage(first.languageCode ?? '', first.languageTag)
+          : getDeviceLocaleFallback();
+        set({ language: systemLang });
+        await AsyncStorage.setItem(STORAGE_KEYS.LANGUAGE, systemLang);
+      } catch {
+        const fallback = getDeviceLocaleFallback();
+        set({ language: fallback });
+        await AsyncStorage.setItem(STORAGE_KEYS.LANGUAGE, fallback);
+      }
     } catch (error) {
       console.error('Error loading persisted state:', error);
     }

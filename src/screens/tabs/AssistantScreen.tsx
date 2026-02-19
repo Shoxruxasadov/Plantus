@@ -16,6 +16,7 @@ import { RootStackParamList } from '../../types';
 import { Check } from 'phosphor-react-native';
 import { COLORS, DARK_COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
 import { useAppStore } from '../../store/appStore';
+import { useTranslation } from '../../i18n';
 import { getAIChat, createAIChat } from '../../services/supabase';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -27,7 +28,8 @@ const ILLUSTRATION_DARK = require('../../../assets/images/gardenMan.png');
 export default function AssistantScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
-  const { isLoggedIn, userCollection, chatCreated, setChatCreated, setAssistantChatId, darkMode } = useAppStore();
+  const { t } = useTranslation();
+  const { isLoggedIn, isPro, userCollection, chatCreated, setChatCreated, setAssistantChatId, darkMode } = useAppStore();
 
   const isDark = darkMode;
   const theme = isDark ? DARK_COLORS : COLORS;
@@ -53,6 +55,10 @@ export default function AssistantScreen() {
   };
 
   const handleStartChat = async () => {
+    if (!isPro) {
+      navigation.navigate('Pro', { fromAssistant: true });
+      return;
+    }
     if (!isLoggedIn) {
       navigation.navigate('Started');
       return;
@@ -93,7 +99,7 @@ export default function AssistantScreen() {
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.backgroundSecondary }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.text }]}>Assistant</Text>
+        <Text style={[styles.title, { color: theme.text }]}>{t('assistant.title')}</Text>
       </View>
 
       <ScrollView
@@ -111,13 +117,13 @@ export default function AssistantScreen() {
         {/* Plant Expert badge */}
         <View style={[styles.badge, isDark && styles.badgeDark]}>
           <Check size={18} color={COLORS.primary} weight="bold" style={styles.badgeIcon} />
-          <Text style={[styles.badgeText, isDark && styles.badgeTextDark]}>Plant Expert</Text>
+          <Text style={[styles.badgeText, isDark && styles.badgeTextDark]}>{t('assistant.badge')}</Text>
         </View>
 
         {/* Chat with Mr. Oliver */}
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Chat with Mr. Oliver</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('assistant.section')}</Text>
         <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-          Get expert plant advice tailored to your plant.
+          {t('assistant.subtitle')}
         </Text>
 
         {/* Start Chat Button */}
@@ -129,7 +135,7 @@ export default function AssistantScreen() {
           {loading ? (
             <ActivityIndicator color={COLORS.textLight} />
           ) : (
-            <Text style={styles.startButtonText}>Start Chat</Text>
+            <Text style={styles.startButtonText}>{t('assistant.startChat')}</Text>
           )}
         </TouchableOpacity>
       </ScrollView>

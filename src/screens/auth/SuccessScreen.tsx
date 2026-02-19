@@ -7,6 +7,7 @@ import { CheckCircle } from 'phosphor-react-native';
 
 import { RootStackParamList } from '../../types';
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
+import { useTranslation } from '../../i18n';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'Success'>;
@@ -15,10 +16,11 @@ export default function SuccessScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const message =
     route.params?.message ||
-    'You successfully changed your password and now you can login to your account';
+    t('auth.success.message');
 
   const handleContinue = () => {
     navigation.navigate('SignIn');
@@ -34,14 +36,14 @@ export default function SuccessScreen() {
           </View>
         </View>
 
-        <Text style={styles.title}>Password Changed!</Text>
+        <Text style={styles.title}>{t('auth.success.title')}</Text>
         <Text style={styles.message}>{message}</Text>
       </View>
 
       {/* Bottom Button */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.lg }]}>
         <TouchableOpacity style={styles.button} onPress={handleContinue}>
-          <Text style={styles.buttonText}>Login to account</Text>
+          <Text style={styles.buttonText}>{t('auth.success.button')}</Text>
         </TouchableOpacity>
       </View>
     </View>

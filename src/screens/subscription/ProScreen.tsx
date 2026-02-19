@@ -34,6 +34,7 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
 import { useAppStore } from '../../store/appStore';
 import { useTheme } from '../../hooks';
+import { useTranslation } from '../../i18n';
 import {
   getOfferings,
   purchasePackage,
@@ -45,11 +46,11 @@ const { width: SW } = Dimensions.get('window');
 const HERO_HEIGHT = 150;
 
 const FEATURES = [
-  { icon: Plant, label: 'Unlimited Plant Identification' },
-  { icon: Calendar, label: 'Instant Disease Diagnosis' },
-  { icon: Bell, label: 'Personalized Care Plans' },
-  { icon: Brain, label: 'Smart Watering Reminders' },
-  { icon: BookOpen, label: '50,000+ Plant Encyclopedia' },
+  { icon: Plant, labelKey: 'pro.feature1' as const },
+  { icon: Calendar, labelKey: 'pro.feature2' as const },
+  { icon: Bell, labelKey: 'pro.feature3' as const },
+  { icon: Brain, labelKey: 'pro.feature4' as const },
+  { icon: BookOpen, labelKey: 'pro.feature5' as const },
 ];
 
 const PRO_CLOSE_COUNT_KEY = '@plantus_pro_close_count';
@@ -59,6 +60,7 @@ export default function ProScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<RootStackParamList, 'Pro'>>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { isPro, setIsPro } = useAppStore();
   const { theme, isDark } = useTheme();
   const isFirstStep = route.params?.isFirstStep ?? false;
@@ -121,7 +123,7 @@ export default function ProScreen() {
 
   const handlePurchase = async () => {
     if (!selectedPackage) {
-      Alert.alert('Select a plan', 'Please choose Weekly or Yearly plan, then tap Start.');
+      Alert.alert(t('pro.selectPlan'), t('pro.selectPlanMessage'));
       return;
     }
     setPurchasing(true);
@@ -130,20 +132,20 @@ export default function ProScreen() {
       if (result.success) {
         const statusResult = await checkPremiumStatus();
         setIsPro(statusResult.isPro);
-        Alert.alert('Success', 'Thank you for upgrading to Pro!', [
-          { text: 'OK', onPress: () => navigation.goBack() },
+        Alert.alert(t('common.success'), t('pro.thankYou'), [
+          { text: t('common.ok'), onPress: () => navigation.goBack() },
         ]);
       } else if (result.cancelled) {
         // User closed the sheet – no alert
       } else {
         const msg = result.error instanceof Error ? result.error.message : (result.error ? String(result.error) : 'Please check your connection and try again.');
-        Alert.alert('Purchase failed', msg);
+        Alert.alert(t('pro.purchaseFailed'), msg);
       }
     } catch (e) {
       console.error('Purchase error:', e);
       Alert.alert(
-        'Error',
-        'Subscription is unavailable. Please check your connection or try again later.'
+        t('common.error'),
+        t('pro.unavailable')
       );
     } finally {
       setPurchasing(false);
@@ -157,15 +159,15 @@ export default function ProScreen() {
       const statusResult = await checkPremiumStatus();
       setIsPro(statusResult.isPro);
       if (statusResult.isPro) {
-        Alert.alert('Success', 'Your purchases have been restored!', [
-          { text: 'OK', onPress: () => navigation.goBack() },
+        Alert.alert(t('common.success'), t('pro.restored'), [
+          { text: t('common.ok'), onPress: () => navigation.goBack() },
         ]);
       } else {
-        Alert.alert('Info', 'No previous purchases found');
+        Alert.alert(t('pro.info'), t('pro.noPurchases'));
       }
     } catch (e) {
       console.error('Restore error:', e);
-      Alert.alert('Error', 'Failed to restore purchases');
+      Alert.alert(t('common.error'), t('pro.restoreFailed'));
     } finally {
       setRestoring(false);
     }
@@ -210,12 +212,12 @@ export default function ProScreen() {
           <View style={styles.proBadgeCircle}>
             <Plant size={48} color="#fff" />
           </View>
-          <Text style={[styles.alreadyProTitle, { color: theme.text }]}>You're a Pro!</Text>
+          <Text style={[styles.alreadyProTitle, { color: theme.text }]}>{t('pro.alreadyProTitle')}</Text>
           <Text style={[styles.alreadyProDesc, { color: theme.textSecondary }]}>
-            You already have access to all premium features. Thank you for your support!
+            {t('pro.alreadyProDesc')}
           </Text>
           <TouchableOpacity style={[styles.doneBtn, { backgroundColor: theme.primary }]} onPress={handleClose}>
-            <Text style={[styles.doneBtnText, { color: theme.textLight }]}>Done</Text>
+            <Text style={[styles.doneBtnText, { color: theme.textLight }]}>{t('pro.done')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -320,15 +322,15 @@ export default function ProScreen() {
         </View>
 
         <View style={[styles.mainBlock, { backgroundColor: theme.background }]}>
-          <Text style={[styles.mainTitle, { color: theme.text }]} numberOfLines={2}>Unlock Full Access</Text>
+          <Text style={[styles.mainTitle, { color: theme.text }]} numberOfLines={2}>{t('pro.unlockTitle')}</Text>
 
           <View style={styles.featuresWrap}>
-            {FEATURES.map(({ icon: Icon, label }) => (
-              <View key={label} style={styles.featureRow}>
+            {FEATURES.map(({ icon: Icon, labelKey }) => (
+              <View key={labelKey} style={styles.featureRow}>
                 <View style={styles.featureIconWrap}>
                   <Icon size={24} color={theme.text} />
                 </View>
-                <Text style={[styles.featureLabel, { color: theme.text }]} numberOfLines={1}>{label}</Text>
+                <Text style={[styles.featureLabel, { color: theme.text }]} numberOfLines={1}>{t(labelKey)}</Text>
               </View>
             ))}
           </View>
@@ -340,10 +342,10 @@ export default function ProScreen() {
             <View style={[styles.yearlyPlanWrap, { backgroundColor: isYearlySelected ? theme.primary : theme.accentLight }]}>
               <View style={styles.planBanner}>
                 <Text style={styles.planBannerText} numberOfLines={1}>
-                2,847 plant lovers joined today
+                  {t('pro.bannerJoined')}
                 </Text>
                 <View style={[styles.planBannerSaveBadge, { backgroundColor: isYearlySelected ? theme.primaryDark : theme.accentDark }]}>
-                  <Text style={styles.planBannerSaveText}>SAVE 88%</Text>
+                  <Text style={styles.planBannerSaveText}>{t('pro.save88')}</Text>
                 </View>
               </View>
               <TouchableOpacity
@@ -359,13 +361,13 @@ export default function ProScreen() {
                   {isYearlySelected && <Check size={14} color="#fff" weight="bold" />}
                 </View>
                 <View style={styles.planLeft}>
-                  <Text style={[styles.planName, { color: theme.text }]}>Yearly</Text>
+                  <Text style={[styles.planName, { color: theme.text }]}>{t('pro.yearly')}</Text>
                   <Text style={[styles.planDesc, { color: theme.textSecondary }]}>
-                    USD {yearlyPrice}/year
+                    {yearlyPrice}{t('pro.perYear')}
                   </Text>
                 </View>
                 <View style={styles.planRight}>
-                  <Text style={[styles.planPriceRight, { color: theme.text }]}>${yearlyPerWeek}/week</Text>
+                  <Text style={[styles.planPriceRight, { color: theme.text }]}>${yearlyPerWeek}{t('pro.perWeek')}</Text>
                 </View>
               </TouchableOpacity>
             </View>
@@ -383,13 +385,13 @@ export default function ProScreen() {
                 {isWeeklySelected && <Check size={14} color="#fff" weight="bold" />}
               </View>
               <View style={styles.planLeft}>
-                <Text style={[styles.planName, { color: theme.text }]}>Weekly</Text>
+                <Text style={[styles.planName, { color: theme.text }]}>{t('pro.weekly')}</Text>
                 <Text style={[styles.planDesc, { color: theme.textSecondary }]}>
-                  3-day trial
+                  {t('pro.threeDayTrial')}
                 </Text>
               </View>
               <View style={styles.planRight}>
-                <Text style={[styles.planPriceRight, { color: theme.text }]}>{weeklyPrice}/week</Text>
+                <Text style={[styles.planPriceRight, { color: theme.text }]}>{weeklyPrice}{t('pro.perWeek')}</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -413,7 +415,7 @@ export default function ProScreen() {
               <ActivityIndicator color={theme.textLight} />
             ) : (
               <Text style={[styles.ctaBtnText, { color: theme.textLight }]}>
-                {selectedPlanKey === 'weekly' ? 'Start 3-day trial' : 'Subscription'}
+                {selectedPlanKey === 'weekly' ? t('pro.startTrial') : t('pro.subscription')}
               </Text>
             )}
           </LinearGradient>
@@ -422,17 +424,17 @@ export default function ProScreen() {
         {/* Footer links */}
         <View style={styles.footerLinks}>
           <TouchableOpacity onPress={() => Linking.openURL('https://plantus.app/privacy-policy/')}>
-            <Text style={[styles.footerLinkText, { color: theme.textSecondary }]}>Privacy Policy</Text>
+            <Text style={[styles.footerLinkText, { color: theme.textSecondary }]}>{t('pro.privacyPolicy')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleRestore} disabled={restoring}>
             {restoring ? (
               <ActivityIndicator size="small" color={theme.textSecondary} />
             ) : (
-              <Text style={[styles.footerLinkText, { color: theme.textSecondary }]}>Restore</Text>
+              <Text style={[styles.footerLinkText, { color: theme.textSecondary }]}>{t('pro.restore')}</Text>
             )}
           </TouchableOpacity>
           <TouchableOpacity onPress={() => Linking.openURL('https://plantus.app/terms-of-use/')}>
-            <Text style={[styles.footerLinkText, { color: theme.textSecondary }]}>Terms of Use</Text>
+            <Text style={[styles.footerLinkText, { color: theme.textSecondary }]}>{t('pro.termsOfUse')}</Text>
           </TouchableOpacity>
         </View>
       </View>

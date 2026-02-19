@@ -6,6 +6,7 @@ import { MapPin } from 'phosphor-react-native';
 
 import { COLORS, FONT_SIZES, SPACING } from '../../utils/theme';
 import { useTheme } from '../../hooks';
+import { useTranslation } from '../../i18n';
 import { useAppStore } from '../../store/appStore';
 import { fetchLocation as fetchLocationAPI } from '../../services/api';
 import { getCurrentLocation } from '../../utils/helpers';
@@ -14,6 +15,7 @@ import { findCountryByName } from '../../constants/countries';
 export default function LoadingLocationScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const { setLocation } = useAppStore();
 
@@ -29,15 +31,15 @@ export default function LoadingLocationScreen() {
 
       if (!locationResult.success) {
         Alert.alert(
-          'Location',
-          locationResult.error || 'Could not get your location. Please enable location access and try again.',
-          [{ text: 'OK', onPress: goBack }]
+          t('location.title'),
+          locationResult.error || t('loadingLocation.errorLocation'),
+          [{ text: t('loadingLocation.ok'), onPress: goBack }]
         );
         return;
       }
 
       if (!locationResult.coords) {
-        Alert.alert('Location', 'Could not get coordinates.', [{ text: 'OK', onPress: goBack }]);
+        Alert.alert(t('location.title'), t('loadingLocation.errorCoordinates'), [{ text: t('loadingLocation.ok'), onPress: goBack }]);
         return;
       }
 
@@ -48,9 +50,9 @@ export default function LoadingLocationScreen() {
 
       if (!apiResult.success || !apiResult.data) {
         Alert.alert(
-          'Location',
-          'Could not determine your country. Check your connection and try again.',
-          [{ text: 'OK', onPress: goBack }]
+          t('location.title'),
+          t('loadingLocation.errorCountry'),
+          [{ text: t('loadingLocation.ok'), onPress: goBack }]
         );
         return;
       }
@@ -70,9 +72,9 @@ export default function LoadingLocationScreen() {
     } catch (error) {
       console.error('Detect location error:', error);
       Alert.alert(
-        'Location',
-        'Something went wrong. Please try again.',
-        [{ text: 'OK', onPress: goBack }]
+        t('location.title'),
+        t('loadingLocation.errorGeneric'),
+        [{ text: t('loadingLocation.ok'), onPress: goBack }]
       );
     }
   };
@@ -84,10 +86,8 @@ export default function LoadingLocationScreen() {
           <MapPin size={44} color={COLORS.primary} />
         </View>
         <ActivityIndicator size="large" color={theme.textSecondary} style={styles.loader} />
-        <Text style={[styles.title, { color: theme.text }]}>Detecting Location</Text>
-        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-          Please wait while we determine your location...
-        </Text>
+        <Text style={[styles.title, { color: theme.text }]}>{t('loadingLocation.title')}</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{t('loadingLocation.subtitle')}</Text>
       </View>
     </View>
   );

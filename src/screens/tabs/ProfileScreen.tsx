@@ -21,6 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { RootStackParamList } from '../../types';
 import { COLORS, DARK_COLORS, FONT_SIZES, SPACING, RADIUS, SHADOWS } from '../../utils/theme';
 import { useAppStore } from '../../store/appStore';
+import { useTranslation } from '../../i18n';
 import { signOut, uploadUserAvatar, removeUserAvatar } from '../../services/supabase';
 import { logOutUser } from '../../services/revenueCat';
 import { openAppStore, openEmail } from '../../utils/helpers';
@@ -39,6 +40,7 @@ interface SettingItem {
 export default function ProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const darkMode = useAppStore((s) => s.darkMode);
   const theme = darkMode ? DARK_COLORS : COLORS;
   const {
@@ -59,12 +61,12 @@ export default function ProfileScreen() {
 
   const handleLogout = () => {
     Alert.alert(
-      'Logout',
-      'Are you sure you want to logout from your profile?',
+      t('profile.logout'),
+      t('profile.logoutConfirm'),
       [
-        { text: 'No, Cancel', style: 'cancel' },
+        { text: t('profile.cancelNo'), style: 'cancel' },
         {
-          text: 'Yes, Logout',
+          text: t('profile.yesLogout'),
           style: 'destructive',
           onPress: async () => {
             setLoggingOut(true);
@@ -95,13 +97,13 @@ export default function ProfileScreen() {
   const showAvatarActions = () => {
     if (!isLoggedIn || !userCollection?.id) return;
     const options: { text: string; onPress?: () => void; style?: 'cancel' | 'destructive' }[] = [
-      { text: 'Change photo', onPress: handleChangePhoto },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('profile.changePhoto'), onPress: handleChangePhoto },
+      { text: t('common.cancel'), style: 'cancel' },
     ];
     if (userCollection.image) {
-      options.splice(1, 0, { text: 'Remove photo', onPress: handleRemovePhoto, style: 'destructive' });
+      options.splice(1, 0, { text: t('profile.removePhoto'), onPress: handleRemovePhoto, style: 'destructive' });
     }
-    Alert.alert('Profile photo', undefined, options);
+    Alert.alert(t('profile.photo'), undefined, options);
   };
 
   const handleChangePhoto = async () => {
@@ -109,7 +111,7 @@ export default function ProfileScreen() {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission', 'Photo library access is required to change your avatar.');
+        Alert.alert(t('profile.permission'), t('profile.photoPermissionMessage'));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -124,13 +126,13 @@ export default function ProfileScreen() {
       const mime = result.assets[0].mimeType ?? 'image/jpeg';
       const { data: url, error } = await uploadUserAvatar(userCollection.id, result.assets[0].base64, mime);
       if (error) {
-        Alert.alert('Error', 'Failed to upload photo. Please try again.');
+        Alert.alert(t('common.error'), t('profile.errorUpload'));
         return;
       }
       if (url) await updateUserCollection({ image: url });
     } catch (e) {
       console.error('Avatar upload error:', e);
-      Alert.alert('Error', 'Failed to upload photo.');
+      Alert.alert(t('common.error'), t('profile.errorUploadShort'));
     } finally {
       setUploadingAvatar(false);
     }
@@ -142,13 +144,13 @@ export default function ProfileScreen() {
       setUploadingAvatar(true);
       const { error } = await removeUserAvatar(userCollection.id);
       if (error) {
-        Alert.alert('Error', 'Failed to remove photo.');
+        Alert.alert(t('common.error'), t('profile.errorRemove'));
         return;
       }
       await updateUserCollection({ image: null });
     } catch (e) {
       console.error('Avatar remove error:', e);
-      Alert.alert('Error', 'Failed to remove photo.');
+      Alert.alert(t('common.error'), t('profile.errorRemove'));
     } finally {
       setUploadingAvatar(false);
     }
@@ -157,26 +159,26 @@ export default function ProfileScreen() {
   const generalSettings: SettingItem[] = [
     {
       Icon: MapPin,
-      title: 'Location',
+      title: t('profile.location'),
       value: location?.code ?? '—',
       onPress: () => navigation.navigate('Location'),
       showArrow: true,
     },
     {
       Icon: Thermometer,
-      title: 'Temperature Unit',
+      title: t('profile.temperatureUnit'),
       value: temperature === 'metric' ? '°C' : '°F',
       onPress: () => {
-        Alert.alert('Temperature Unit', 'Choose your preference', [
-          { text: 'Celsius (°C)', onPress: () => setTemperature('metric') },
-          { text: 'Fahrenheit (°F)', onPress: () => setTemperature('imperial') },
+        Alert.alert(t('profile.temperatureTitle'), t('profile.temperatureChoose'), [
+          { text: t('profile.celsius'), onPress: () => setTemperature('metric') },
+          { text: t('profile.fahrenheit'), onPress: () => setTemperature('imperial') },
         ]);
       },
       showArrow: true,
-    },   
+    },
     {
       Icon: Gear,
-      title: 'App Settings',
+      title: t('profile.appSettings'),
       onPress: () => navigation.navigate('AppSettings'),
       showArrow: true,
     },
@@ -185,35 +187,34 @@ export default function ProfileScreen() {
   const otherSettings: SettingItem[] = [
     {
       Icon: ShieldCheck,
-      title: 'Privacy policy',
+      title: t('profile.privacyPolicy'),
       onPress: () => Linking.openURL('https://plantus.app/privacy-policy/'),
       showArrow: true,
     },
     {
       Icon: FileText,
-      title: 'Terms of Use',
+      title: t('profile.termsOfUse'),
       onPress: () => Linking.openURL('https://plantus.app/terms-of-use/'),
       showArrow: true,
     },
     {
       Icon: ChatCircle,
-      title: 'Send Feedback',
+      title: t('profile.sendFeedback'),
       onPress: () => openEmail('support@plantus.app', 'Feedback'),
       showArrow: true,
     },
     {
       Icon: HeadphonesIcon,
-      title: 'Contact Support',
+      title: t('profile.contactSupport'),
       onPress: () => openEmail('support@plantus.app', 'Feedback'),
       showArrow: true,
     },
     {
       Icon: Star,
-      title: 'Rate us',
+      title: t('profile.rateUs'),
       onPress: () => openAppStore(),
       showArrow: true,
     },
-  
   ];
 
   const getItemBorderRadius = (index: number, total: number) => {
@@ -254,7 +255,7 @@ export default function ProfileScreen() {
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.backgroundSecondary }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.text }]}>Profile</Text>
+        <Text style={[styles.title, { color: theme.text }]}>{t('profile.title')}</Text>
         {isLoggedIn && (
           <TouchableOpacity
             style={styles.editButton}
@@ -296,10 +297,10 @@ export default function ProfileScreen() {
           </TouchableOpacity>
           <View style={styles.userInfo}>
             <Text style={[styles.userName, { color: theme.text }]}>
-              {isLoggedIn ? userCollection.name || 'User' : 'Anonym User'}
+              {isLoggedIn ? userCollection.name || t('profile.user') : t('profile.anonymousUser')}
             </Text>
             <Text style={[styles.userEmail, { color: theme.textSecondary }]}>
-              {isLoggedIn ? userCollection.email || 'No email' : 'Please login'}
+              {isLoggedIn ? userCollection.email || t('profile.noEmailShort') : t('profile.pleaseLogin')}
             </Text>
           </View>
           {!isLoggedIn && (
@@ -307,7 +308,7 @@ export default function ProfileScreen() {
               style={styles.loginButton}
               onPress={() => navigation.navigate('Started')}
             >
-              <Text style={styles.loginButtonText}>Login</Text>
+              <Text style={styles.loginButtonText}>{t('profile.login')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -333,9 +334,9 @@ export default function ProfileScreen() {
               <View style={styles.proContent}>
                 <Sparkle size={28} color={COLORS.textLight} weight="fill" style={styles.proStar} />
                 <View>
-                  <Text style={styles.proTitle}>Join a PRO</Text>
+                  <Text style={styles.proTitle}>{t('profile.joinPro')}</Text>
                   <Text style={styles.proSubtitle}>
-                    Buy subscription and enjoy
+                    {t('pro.careForPlants')}
                   </Text>
                 </View>
               </View>
@@ -365,9 +366,9 @@ export default function ProfileScreen() {
               <View style={styles.proContent}>
                 <Sparkle size={24} color={COLORS.textLight} weight="fill" style={styles.proStar} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.proTitle}>Plantus Pro</Text>
+                  <Text style={styles.proTitle}>{t('profile.plantusPro')}</Text>
                   <Text style={[styles.proSubtitle, { opacity: 0.9 }]}>
-                    Manage your subscription
+                    {t('profile.manageSubscription')}
                   </Text>
                 </View>
                 <CaretRight size={20} color={COLORS.textLight} weight="bold"/>
@@ -378,7 +379,7 @@ export default function ProfileScreen() {
 
         {/* General Settings */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>General</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t('profile.general')}</Text>
           <View style={styles.settingsGroup}>
             {generalSettings.map((item, index) =>
               renderSettingItem(item, index, generalSettings.length)
@@ -388,7 +389,7 @@ export default function ProfileScreen() {
 
         {/* Other Settings */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Other</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t('profile.other')}</Text>
           <View style={styles.settingsGroup}>
             {otherSettings.map((item, index) =>
               renderSettingItem(item, index, otherSettings.length)
@@ -405,13 +406,13 @@ export default function ProfileScreen() {
           >
             <SignOut size={20} color={COLORS.error} />
             <Text style={styles.logoutText}>
-              {loggingOut ? 'Logging out...' : 'Logout'}
+              {loggingOut ? t('profile.loggingOut') : t('profile.logout')}
             </Text>
           </TouchableOpacity>
         )}
 
         {/* Version */}
-        <Text style={[styles.version, { color: theme.textTertiary }]}>Plantus - App Version v1.0.0</Text>
+        <Text style={[styles.version, { color: theme.textTertiary }]}>{t('profile.appVersion')}</Text>
         <View style={{ height: 95 }}></View>
       </ScrollView>
 

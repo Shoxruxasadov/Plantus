@@ -15,6 +15,7 @@ import { Envelope, AppleLogo, ArrowLeft } from "phosphor-react-native";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { RootStackParamList } from "../../types";
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from "../../utils/theme";
+import { useTranslation } from "../../i18n";
 import { useTheme } from "../../hooks";
 import { GOOGLE_WEB_CLIENT_ID } from "../../config/auth";
 import {
@@ -46,6 +47,7 @@ export default function StartedScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const {
     setUser,
     setSession,
@@ -95,7 +97,7 @@ export default function StartedScreen() {
     } catch (error: any) {
       if (error.code !== "ERR_REQUEST_CANCELED") {
         console.error("Apple sign-in error:", error);
-        showAlert("Error", "Failed to sign in with Apple");
+        showAlert(t('common.error'), t('started.alertAppleError'));
       }
     } finally {
       setLoading(null);
@@ -104,10 +106,7 @@ export default function StartedScreen() {
 
   const handleGoogleSignIn = async () => {
     if (!GoogleSignin) {
-      showAlert(
-        "Not Available",
-        "Google Sign-In requires a development build. Please use email sign-in in Expo Go.",
-      );
+      showAlert(t('started.alertGoogleNotAvailable'), t('started.alertGoogleNotAvailableMessage'));
       return;
     }
 
@@ -140,7 +139,7 @@ export default function StartedScreen() {
       }
     } catch (error: any) {
       console.error("Google sign-in error:", error);
-      showAlert("Error", "Failed to sign in with Google");
+      showAlert(t('common.error'), t('started.alertGoogleError'));
     } finally {
       setLoading(null);
     }
@@ -228,7 +227,7 @@ export default function StartedScreen() {
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Text style={[styles.skipText, { color: theme.textSecondary }]}>
-            Skip
+            {t('started.skip')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -240,9 +239,9 @@ export default function StartedScreen() {
           style={styles.plantImage}
           resizeMode="contain"
         />
-        <Text style={[styles.title, { color: theme.text }]}>Sign Up</Text>
+        <Text style={[styles.title, { color: theme.text }]}>{t('started.signUp')}</Text>
         <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-          Keep every plant healthy
+          {t('started.subtitle')}
         </Text>
         {/* Buttons */}
         <View
@@ -264,7 +263,7 @@ export default function StartedScreen() {
                     style={styles.googleIcon}
                   />
                   <Text style={[styles.appleButtonText, {color: theme.textfieldColor}]}>
-                    Continue with Apple
+                    {t('started.continueApple')}
                   </Text>
                 </>
               )}
@@ -286,7 +285,7 @@ export default function StartedScreen() {
                   style={styles.googleIcon}
                 />
                 <Text style={[styles.socialButtonText, {color: theme.text}]}>
-                  Continue with Google
+                  {t('started.continueGoogle')}
                 </Text>
               </>
             )}
@@ -307,7 +306,7 @@ export default function StartedScreen() {
                   color={theme.text}
                   style={styles.buttonIcon}
                 />
-                <Text style={[styles.socialButtonText, {color: theme.text}]}>Continue with Email</Text>
+                <Text style={[styles.socialButtonText, {color: theme.text}]}>{t('started.continueEmail')}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -319,8 +318,8 @@ export default function StartedScreen() {
             disabled={loading !== null}
           >
             <Text style={[styles.loginText, { color: theme.textSecondary }]}>
-              Already have an account?{" "}
-              <Text style={styles.loginTextBold}>Log In</Text>
+              {t('started.loginPrompt')}
+              <Text style={styles.loginTextBold}>{t('started.logIn')}</Text>
             </Text>
           </TouchableOpacity>
         </View>

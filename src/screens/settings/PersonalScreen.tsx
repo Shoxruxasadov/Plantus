@@ -17,11 +17,13 @@ import * as ImagePicker from 'expo-image-picker';
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
 import { useTheme } from '../../hooks';
 import { useAppStore } from '../../store/appStore';
+import { useTranslation } from '../../i18n';
 import { updateUserData, uploadUserAvatar, removeUserAvatar } from '../../services/supabase';
 
 export default function PersonalScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const { userCollection, updateUserCollection } = useAppStore();
 
@@ -32,13 +34,13 @@ export default function PersonalScreen() {
   const showAvatarActions = () => {
     if (!userCollection?.id || uploadingAvatar) return;
     const options: { text: string; onPress?: () => void; style?: 'cancel' | 'destructive' }[] = [
-      { text: 'Change photo', onPress: handleChangePhoto },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('profile.changePhoto'), onPress: handleChangePhoto },
+      { text: t('common.cancel'), style: 'cancel' },
     ];
     if (userCollection.image) {
-      options.splice(1, 0, { text: 'Remove photo', onPress: handleRemovePhoto, style: 'destructive' });
+      options.splice(1, 0, { text: t('profile.removePhoto'), onPress: handleRemovePhoto, style: 'destructive' });
     }
-    Alert.alert('Profile photo', undefined, options);
+    Alert.alert(t('profile.photo'), undefined, options);
   };
 
   const handleChangePhoto = async () => {
@@ -46,7 +48,7 @@ export default function PersonalScreen() {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission', 'Photo library access is required to change your avatar.');
+        Alert.alert(t('profile.permission'), t('profile.photoPermissionMessage'));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -61,13 +63,13 @@ export default function PersonalScreen() {
       const mime = result.assets[0].mimeType ?? 'image/jpeg';
       const { data: url, error } = await uploadUserAvatar(userCollection.id, result.assets[0].base64, mime);
       if (error) {
-        Alert.alert('Error', 'Failed to upload photo. Please try again.');
+        Alert.alert(t('common.error'), t('personal.errorUpload'));
         return;
       }
       if (url) await updateUserCollection({ image: url });
     } catch (e) {
       console.error('Avatar upload error:', e);
-      Alert.alert('Error', 'Failed to upload photo.');
+      Alert.alert(t('common.error'), t('personal.errorUploadShort'));
     } finally {
       setUploadingAvatar(false);
     }
@@ -79,13 +81,13 @@ export default function PersonalScreen() {
       setUploadingAvatar(true);
       const { error } = await removeUserAvatar(userCollection.id);
       if (error) {
-        Alert.alert('Error', 'Failed to remove photo.');
+        Alert.alert(t('common.error'), t('personal.errorRemove'));
         return;
       }
       await updateUserCollection({ image: null });
     } catch (e) {
       console.error('Avatar remove error:', e);
-      Alert.alert('Error', 'Failed to remove photo.');
+      Alert.alert(t('common.error'), t('personal.errorRemove'));
     } finally {
       setUploadingAvatar(false);
     }
@@ -93,7 +95,7 @@ export default function PersonalScreen() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Name is required');
+      Alert.alert(t('common.error'), t('personal.nameRequired'));
       return;
     }
 
@@ -101,11 +103,11 @@ export default function PersonalScreen() {
     try {
       await updateUserData(userCollection.id, { name: name.trim() });
       updateUserCollection({ name: name.trim() });
-      Alert.alert('Success', 'Profile updated successfully');
+      Alert.alert(t('common.success'), t('personal.success'));
       navigation.goBack();
     } catch (error) {
       console.error('Update profile error:', error);
-      Alert.alert('Error', 'Failed to update profile');
+      Alert.alert(t('common.error'), t('personal.errorUpdate'));
     } finally {
       setLoading(false);
     }
@@ -121,7 +123,7 @@ export default function PersonalScreen() {
         >
           <X size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: theme.text }]}>Edit</Text>
+        <Text style={[styles.title, { color: theme.text }]}>{t('personal.edit')}</Text>
         <TouchableOpacity
           style={styles.saveButton}
           onPress={handleSave}
@@ -130,7 +132,7 @@ export default function PersonalScreen() {
           {loading ? (
             <ActivityIndicator size="small" color={theme.textSecondary} />
           ) : (
-            <Text style={styles.saveButtonText}>Save</Text>
+            <Text style={styles.saveButtonText}>{t('personal.save')}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -158,33 +160,33 @@ export default function PersonalScreen() {
           )}
         </TouchableOpacity>
         <Text style={[styles.avatarHint, { color: theme.textTertiary }]}>
-          Tap to change or remove photo
+          {t('personal.photoHint')}
         </Text>
       </View>
 
       {/* Form */}
       <View style={styles.form}>
         <View style={[styles.inputGroup]}>
-          <Text style={[styles.label, { color: theme.text }]}>Full Name</Text>
+          <Text style={[styles.label, { color: theme.text }]}>{t('personal.fullName')}</Text>
           <TextInput
             style={[styles.input, { backgroundColor: theme.backgroundTertiary, color: theme.text }]}
             value={name}
             onChangeText={setName}
-            placeholder="Enter your name"
+            placeholder={t('personal.namePlaceholder')}
             placeholderTextColor={theme.textTertiary}
             autoCapitalize="words"
           />
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: theme.text }]}>Email</Text>
+          <Text style={[styles.label, { color: theme.text }]}>{t('personal.email')}</Text>
           <View style={[styles.input, styles.inputDisabled, { backgroundColor: theme.backgroundTertiary }]}>
             <Text style={[styles.inputDisabledText, { color: theme.text }]}>
-              {userCollection.email || 'No email'}
+              {userCollection.email || t('personal.noEmail')}
             </Text>
           </View>
           <Text style={[styles.helperText, { color: theme.textTertiary }]}>
-            Email cannot be changed
+            {t('personal.emailCannotChange')}
           </Text>
         </View>
       </View>

@@ -22,6 +22,7 @@ import { X, CheckCircle, CaretRight, Sparkle, Bug, Timer, FolderOpen } from 'pho
 import { RootStackParamList, Group } from '../../types';
 import { COLORS, FONT_SIZES, SPACING, RADIUS, PLACEHOLDER_IMAGE } from '../../utils/theme';
 import { useTheme } from '../../hooks';
+import { useTranslation } from '../../i18n';
 import { useAppStore } from '../../store/appStore';
 import { addPlantToGarden, addPlantToGroup, deleteGardenPlant, removePlantFromGroup, getGroups, findGardenPlantByName, getGardenPlantById } from '../../services/supabase';
 import { scheduleCareplanNotificationsForPlant } from '../../services/notifications';
@@ -55,15 +56,15 @@ const OVERVIEW_ICONS: { [key: string]: any } = {
   PruningNeeds: require('../../../assets/images/Pruning_Needs.png'),
 };
 
-const OVERVIEW_KEYS: { key: string; label: string }[] = [
-  { key: 'WateringNeeds', label: 'Watering Needs' },
-  { key: 'Fertilizing', label: 'Fertilizing' },
-  { key: 'LightRequirement', label: 'Light Requirement' },
-  { key: 'Humidity', label: 'Humidity' },
-  { key: 'TemperatureRange', label: 'Temperature Range' },
-  { key: 'SoilType', label: 'Soil Type' },
-  { key: 'PotDrainage', label: 'Pot & Drainage' },
-  { key: 'PruningNeeds', label: 'Pruning Needs' },
+const OVERVIEW_KEYS: { key: string; labelKey: string }[] = [
+  { key: 'WateringNeeds', labelKey: 'plant.wateringNeeds' },
+  { key: 'Fertilizing', labelKey: 'plant.fertilizing' },
+  { key: 'LightRequirement', labelKey: 'plant.lightRequirement' },
+  { key: 'Humidity', labelKey: 'plant.humidity' },
+  { key: 'TemperatureRange', labelKey: 'plant.temperatureRange' },
+  { key: 'SoilType', labelKey: 'plant.soilType' },
+  { key: 'PotDrainage', labelKey: 'plant.potDrainage' },
+  { key: 'PruningNeeds', labelKey: 'plant.pruningNeeds' },
 ];
 
 const CARE_ICONS: { [key: string]: any } = {
@@ -75,13 +76,13 @@ const CARE_ICONS: { [key: string]: any } = {
   Soilcheck: require('../../../assets/images/Careplan6.png'),
 };
 
-const CARE_KEYS: { key: string; label: string }[] = [
-  { key: 'Watering', label: 'Watering' },
-  { key: 'Fertilize', label: 'Fertilize' },
-  { key: 'Repotting', label: 'Repotting' },
-  { key: 'Pruning', label: 'Pruning' },
-  { key: 'Humidity', label: 'Humidity' },
-  { key: 'Soilcheck', label: 'Soil check' },
+const CARE_KEYS: { key: string; labelKey: string }[] = [
+  { key: 'Watering', labelKey: 'garden.careWatering' },
+  { key: 'Fertilize', labelKey: 'garden.careFertilize' },
+  { key: 'Repotting', labelKey: 'garden.careRepotting' },
+  { key: 'Pruning', labelKey: 'garden.carePruning' },
+  { key: 'Humidity', labelKey: 'garden.careHumidity' },
+  { key: 'Soilcheck', labelKey: 'garden.careSoilCheck' },
 ];
 
 function formatRepeat(item: any): string {
@@ -119,8 +120,9 @@ export default function PlantScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { theme, isDark } = useTheme();
-  const { userCollection, isLoggedIn, notifications } = useAppStore();
+  const { userCollection, isLoggedIn, isPro, notifications } = useAppStore();
 
   const { plantId, isGarden, snap } = route.params || {};
   const [plant, setPlant] = useState<any>(snap || null);
@@ -128,7 +130,7 @@ export default function PlantScreen() {
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [saving, setSaving] = useState(false);
   const [selectedDisease, setSelectedDisease] = useState<any>(null);
-  const [selectedOverview, setSelectedOverview] = useState<{ key: string; label: string; item: any } | null>(null);
+  const [selectedOverview, setSelectedOverview] = useState<{ key: string; labelKey: string; item: any } | null>(null);
   const [imageIndex, setImageIndex] = useState(0);
   const [imageGalleryVisible, setImageGalleryVisible] = useState(false);
   const galleryListRef = useRef<FlatList>(null);
@@ -400,7 +402,7 @@ export default function PlantScreen() {
   const saveToGarden = async (groupId?: string) => {
     if (!plant) return;
     if (!userCollection?.id) {
-      Alert.alert('Error', 'Please sign in to add plants to your garden.');
+      Alert.alert(t('common.error'), t('plant.signInToAdd'));
       return;
     }
     setSaving(true);
@@ -433,7 +435,7 @@ export default function PlantScreen() {
 
       if (result.error) {
         console.error('[Plant] addPlantToGarden error:', result.error);
-        Alert.alert('Error', result.error.message || 'Failed to add plant to garden');
+        Alert.alert(t('common.error'), result.error.message || t('plant.errorAdd'));
         return;
       }
 
@@ -441,9 +443,9 @@ export default function PlantScreen() {
         const gardenId = String(result.data.id);
         const cp = safeParse(cpStr);
         if (cp && notifications) {
-          const notifResult = await scheduleCareplanNotificationsForPlant(plant.name ?? 'Plant', gardenId, cp).catch(() => ({ ok: false, error: 'Reminders could not be set up' }));
+          const notifResult = await scheduleCareplanNotificationsForPlant(plant.name ?? 'Plant', gardenId, cp).catch(() => ({ ok: false, error: t('plant.remindersNotSet') }));
           if (notifResult && !notifResult.ok) {
-            setSnackMessage(notifResult.error ?? 'Reminders could not be set up');
+            setSnackMessage(notifResult.error ?? t('plant.remindersNotSet'));
             setSnackVisible(true);
           }
         }
@@ -459,20 +461,20 @@ export default function PlantScreen() {
         setGardenPlant(result.data);
       }
 
-      Alert.alert('Success', 'Plant added to your garden!', [
-        { text: 'View Garden', onPress: () => navigation.navigate('MyGarden') },
-        { text: 'OK' },
+      Alert.alert(t('plant.success'), t('plant.addedToGarden'), [
+        { text: t('plant.viewGarden'), onPress: () => navigation.navigate('MyGarden') },
+        { text: t('plant.ok') },
       ]);
     } catch (e) {
       console.error('[Plant] saveToGarden error:', e);
-      Alert.alert('Error', 'Failed to add plant to garden');
+      Alert.alert(t('common.error'), t('plant.errorAdd'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = () => {
-    showConfirmAlert('Delete Plant', 'Are you sure you want to remove this plant?', async () => {
+    showConfirmAlert(t('plant.deleteConfirmTitle'), t('plant.deleteConfirmMessage'), async () => {
       if (!plantId || !userCollection?.id) return;
       try {
         const idStr = String(plantId);
@@ -485,7 +487,7 @@ export default function PlantScreen() {
         }
         await deleteGardenPlant(idStr);
         navigation.goBack();
-      } catch { Alert.alert('Error', 'Failed to delete plant'); }
+      } catch { Alert.alert(t('common.error'), t('plant.errorDelete')); }
     });
   };
 
@@ -529,7 +531,7 @@ export default function PlantScreen() {
     if (checkedGarden && gardenPlant) {
       return (
         <TouchableOpacity style={styles.seeGardenBtn} onPress={handleSeeGarden}>
-          <Text style={styles.seeGardenBtnText}>See your Garden</Text>
+          <Text style={styles.seeGardenBtnText}>{t('plant.seeGarden')}</Text>
         </TouchableOpacity>
       );
     }
@@ -539,7 +541,7 @@ export default function PlantScreen() {
         onPress={handleAddToGarden}
         disabled={saving}
       >
-        <Text style={styles.addBtnText}>{saving ? 'Adding...' : 'Add to My Garden'}</Text>
+        <Text style={styles.addBtnText}>{saving ? t('plant.adding') : t('plant.addToMyGarden')}</Text>
       </TouchableOpacity>
     );
   };
@@ -685,7 +687,7 @@ export default function PlantScreen() {
                     activeTab === tab && { color: isDark ? '#18191C' : '#FFFFFF' },
                   ]}
                 >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  {tab === 'overview' ? t('plant.overview') : tab === 'care' ? t('plant.care') : tab === 'diseases' ? t('plant.diseasesTab') : t('plant.journal')}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -710,9 +712,13 @@ export default function PlantScreen() {
             <TouchableOpacity
               style={[styles.helpCard, { backgroundColor: theme.card }]}
               onPress={() => {
+                if (!isPro) {
+                  navigation.navigate('Pro', { fromPlantHelp: true });
+                  return;
+                }
                 const plantName = plant?.name || 'this plant';
                 const firstImg = Array.isArray(images) && images.length > 0 ? images[0] : undefined;
-                const contextMessage = `I need help with my ${plantName}. Could you give me care tips?`;
+                const contextMessage = t('plant.helpContext', { name: plantName });
                 navigation.navigate('Chat', {
                   plantImage: firstImg,
                   plantContextMessage: contextMessage,
@@ -724,8 +730,8 @@ export default function PlantScreen() {
                 <Sparkle size={35} color={theme.primary} weight="fill" />
               </View>
               <View style={styles.helpInfo}>
-                <Text style={[styles.helpTitle, { color: theme.text }]}>Need more help?</Text>
-                <Text style={[styles.helpSubtitle, { color: theme.textSecondary }]}>Mr Oliver AI Botanist</Text>
+                <Text style={[styles.helpTitle, { color: theme.text }]}>{t('plant.needHelp')}</Text>
+                <Text style={[styles.helpSubtitle, { color: theme.textSecondary }]}>{t('plant.mrOliver')}</Text>
               </View>
               <CaretRight size={22} color={theme.textSecondary} weight="bold"/>
             </TouchableOpacity>
@@ -743,15 +749,15 @@ export default function PlantScreen() {
 
             {/* OVERVIEW */}
             <View onLayout={onSectionLayout('overview')}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>About This Plant</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('plant.about')}</Text>
               {overview ? (
                 <View style={[styles.overviewContainer, { backgroundColor: theme.card }]}>
                   {(() => {
-                    const items = OVERVIEW_KEYS.map(({ key, label }) => {
+                    const items = OVERVIEW_KEYS.map(({ key, labelKey }) => {
                       const item = overview[key] || overview[key.charAt(0).toLowerCase() + key.slice(1)];
                       if (!item) return null;
-                      return { key, label, item };
-                    }).filter(Boolean) as { key: string; label: string; item: any }[];
+                      return { key, labelKey, item };
+                    }).filter(Boolean) as { key: string; labelKey: string; item: any }[];
 
                     return items.map((entry, idx) => (
                       <React.Fragment key={entry.key}>
@@ -763,7 +769,7 @@ export default function PlantScreen() {
                             resizeMode="contain"
                           />
                           <View style={styles.overviewInfo}>
-                            <Text style={[styles.overviewLabel, { color: theme.text }]}>{entry.label}</Text>
+                            <Text style={[styles.overviewLabel, { color: theme.text }]}>{t(entry.labelKey)}</Text>
                             <Text style={[styles.overviewDesc, { color: theme.textSecondary }]} numberOfLines={1}>
                               {entry.item.mainDescription?.replace(/^[^\s]+\s/, '') || ''}
                             </Text>
@@ -774,18 +780,19 @@ export default function PlantScreen() {
                     ));
                   })()}
                 </View>
-              ) : <Text style={[styles.emptySection, { color: theme.textTertiary }]}>No overview data available</Text>}
+              ) : <Text style={[styles.emptySection, { color: theme.textTertiary }]}>{t('plant.noOverview')}</Text>}
             </View>
 
             {/* CARE */}
             <View onLayout={onSectionLayout('care')}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Care Plan</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('plant.carePlan')}</Text>
               {activeCareplan ? (
                 <View style={[styles.careContainer, { backgroundColor: theme.card }]}>
-                  {CARE_KEYS.map(({ key, label }, index) => {
+                  {CARE_KEYS.map(({ key, labelKey }, index) => {
                     const item = activeCareplan[key] || activeCareplan[key.charAt(0).toLowerCase() + key.slice(1)];
                     if (!item) return null;
-                    const repeatText = formatRepeat(item) || 'Not Set';
+                    const rawRepeat = formatRepeat(item);
+                    const repeatText = rawRepeat === 'Every day' ? t('carePlan.everyDay') : rawRepeat === 'Every week' ? t('carePlan.everyWeek') : rawRepeat || t('carePlan.notSet');
                     return (
                       <React.Fragment key={key}>
                         {index > 0 && <View style={[styles.careDivider, { backgroundColor: theme.borderLight }]} />}
@@ -796,20 +803,20 @@ export default function PlantScreen() {
                             if (!isGarden) {
                               if (checkedGarden && gardenPlant) {
                                 Alert.alert(
-                                  'Already in Garden',
-                                  'This plant is already in your garden. Go to your garden to customize care plans.',
+                                  t('plant.alreadyInGarden'),
+                                  t('plant.alreadyInGardenMessage'),
                                   [
-                                    { text: 'Cancel', style: 'cancel' },
-                                    { text: 'See your Garden', onPress: handleSeeGarden },
+                                    { text: t('garden.cancel'), style: 'cancel' },
+                                    { text: t('plant.seeGarden'), onPress: handleSeeGarden },
                                   ],
                                 );
                               } else {
                                 Alert.alert(
-                                  'Add to Garden',
-                                  'To customize care plans, add this plant to your garden first.',
+                                  t('plant.addToGarden'),
+                                  t('plant.addToGardenMessage'),
                                   [
-                                    { text: 'Cancel', style: 'cancel' },
-                                    { text: 'Add to Garden', onPress: handleAddToGarden },
+                                    { text: t('garden.cancel'), style: 'cancel' },
+                                    { text: t('plant.addToGarden'), onPress: handleAddToGarden },
                                   ],
                                 );
                               }
@@ -818,7 +825,7 @@ export default function PlantScreen() {
                             navigation.navigate('CarePlanDetail', {
                               plantName: plant.name,
                               careKey: key,
-                              careLabel: label,
+                              careLabel: t(labelKey),
                               careItem: item,
                               plantId: plantId || plant?.id,
                               isGarden,
@@ -828,7 +835,7 @@ export default function PlantScreen() {
                           <View style={[styles.careIconWrap, { backgroundColor: theme.cardElevated }]}>
                             <Image source={CARE_ICONS[key]} style={styles.careIconImg} resizeMode="contain" />
                           </View>
-                          <Text style={[styles.careLabel, { color: theme.text }]}>{label}</Text>
+                          <Text style={[styles.careLabel, { color: theme.text }]}>{t(labelKey)}</Text>
                           <View style={styles.careRight}>
                             <Text style={[styles.careRepeat, { color: theme.textSecondary }]}>{repeatText}</Text>
                             <CaretRight size={18} color={theme.textSecondary} weight="bold"/>
@@ -843,7 +850,7 @@ export default function PlantScreen() {
 
             {/* DISEASES */}
             <View onLayout={onSectionLayout('diseases')}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Diseases</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('plant.diseases')}</Text>
               {diseases.length > 0 ? diseases.map((d: any, i: number) => (
                 <TouchableOpacity key={i} style={[styles.diseaseRow, { backgroundColor: theme.card }]} onPress={() => setSelectedDisease(d)} activeOpacity={0.7}>
                   {d.image ? (
@@ -856,7 +863,7 @@ export default function PlantScreen() {
                   <Text style={[styles.diseaseTitle, { color: theme.text }]}>{d.title}</Text>
                   <CaretRight size={18} color={theme.textSecondary} weight="bold"/>
                 </TouchableOpacity>
-              )) : <Text style={[styles.emptySection, { color: theme.textTertiary }]}>No known diseases</Text>}
+              )) : <Text style={[styles.emptySection, { color: theme.textTertiary }]}>{t('plant.noDiseases')}</Text>}
             </View>
 
             {/* JOURNAL */}
@@ -989,7 +996,7 @@ export default function PlantScreen() {
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.overviewModalContent} bounces={false}>
               {/* Header row */}
               <View style={styles.overviewModalHeader}>
-                <Text style={[styles.overviewModalTitle, { color: theme.text }]}>{selectedOverview?.label}</Text>
+                <Text style={[styles.overviewModalTitle, { color: theme.text }]}>{selectedOverview ? t(selectedOverview.labelKey) : ''}</Text>
                 <TouchableOpacity style={[styles.overviewModalClose, { backgroundColor: theme.backgroundTertiary }]} onPress={closeOverviewSheet}>
                   <X size={20} color={theme.text} />
                 </TouchableOpacity>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ScrollView,
   Image,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp, StackActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,6 +17,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import type { RootStackParamList } from '../../types';
 import { FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
 import { useTheme } from '../../hooks';
+import { useTranslation } from '../../i18n';
+import { getOfferings, purchasePackage, checkPremiumStatus } from '../../services/revenueCat';
+import { useAppStore } from '../../store/appStore';
+import type { PurchasesPackage } from 'react-native-purchases';
+
+/** RevenueCat package identifier for annual discount (Yearly Discount) */
+const RC_ANNUAL_DISCOUNT_ID = 'rc_annual_discount';
 
 type RouteProps = RouteProp<RootStackParamList, 'OneTimeOffer'>;
 
@@ -24,7 +32,10 @@ export default function OneTimeOfferScreen() {
   const route = useRoute<RouteProps>();
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { t } = useTranslation();
+  const setIsPro = useAppStore((s) => s.setIsPro);
   const fromFirstTime = route.params?.fromFirstTime ?? false;
+  const [claiming, setClaiming] = useState(false);
 
   const performClose = () => {
     if (fromFirstTime) {
@@ -36,21 +47,105 @@ export default function OneTimeOfferScreen() {
 
   const handleClose = () => {
     Alert.alert(
-      'One-time opportunity',
-      "This opportunity won't be available again. Take advantage of it.",
+      t('oneTime.opportunity'),
+      t('oneTime.opportunityMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: "I don't need it", onPress: performClose },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('oneTime.dontNeed'), onPress: performClose },
       ]
     );
   };
 
-  const handleClaimOffer = () => {
-    if (fromFirstTime) {
-      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
-      setTimeout(() => navigation.navigate('Pro', { isFirstStep: false }), 150);
-    } else {
-      navigation.goBack();
+  const findAnnualDiscountPackage = (packages: PurchasesPackage[]): PurchasesPackage | null => {
+    return (
+      packages.find(
+        (p) =>
+          p.identifier === RC_ANNUAL_DISCOUNT_ID ||
+          p.identifier === `$${RC_ANNUAL_DISCOUNT_ID}` ||
+          (p.identifier?.includes && p.identifier.includes('annual_discount'))
+      ) ??
+      packages.find(
+        (p) => p.packageType === 'ANNUAL' || p.identifier === '$rc_annual' || p.identifier?.includes?.('annual')
+      ) ??
+      null
+    );
+  };
+
+  const handleClaimOffer = async () => {
+    setClaiming(true);
+    try {
+      const result = await getOfferings();
+      if (!result.success || !result.data?.current?.availablePackages?.length) {
+        const allPkgs: PurchasesPackage[] = [];
+        if (result.data?.all) {
+          Object.values(result.data.all).forEach((offering: any) => {
+            if (offering?.availablePackages) {
+              allPkgs.push(...offering.availablePackages);
+            }
+          });
+        }
+        if (allPkgs.length === 0) {
+          Alert.alert(t('common.error'), t('pro.unavailable'));
+          setClaiming(false);
+          return;
+        }
+        const pkg = findAnnualDiscountPackage(allPkgs);
+        if (!pkg) {
+          Alert.alert(t('common.error'), t('pro.unavailable'));
+          setClaiming(false);
+          return;
+        }
+        const purchaseResult = await purchasePackage(pkg);
+        if (purchaseResult.success) {
+          const statusResult = await checkPremiumStatus();
+          if (statusResult.isPro) setIsPro(true);
+          if (fromFirstTime) {
+            navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+            setTimeout(() => navigation.navigate('Pro', { isFirstStep: false }), 150);
+          } else {
+            navigation.goBack();
+          }
+        } else if (!purchaseResult.cancelled) {
+          const msg =
+            purchaseResult.error instanceof Error
+              ? purchaseResult.error.message
+              : String(purchaseResult.error ?? t('pro.purchaseFailed'));
+          Alert.alert(t('pro.purchaseFailed'), msg);
+        }
+        setClaiming(false);
+        return;
+      }
+
+      const packages = result.data.current.availablePackages;
+      const pkg = findAnnualDiscountPackage(packages);
+      if (!pkg) {
+        Alert.alert(t('common.error'), t('pro.unavailable'));
+        setClaiming(false);
+        return;
+      }
+
+      const purchaseResult = await purchasePackage(pkg);
+      if (purchaseResult.success) {
+        const statusResult = await checkPremiumStatus();
+        if (statusResult.isPro) setIsPro(true);
+        if (fromFirstTime) {
+          navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+          setTimeout(() => navigation.navigate('Pro', { isFirstStep: false }), 150);
+        } else {
+          navigation.goBack();
+        }
+      } else if (!purchaseResult.cancelled) {
+        const msg =
+          purchaseResult.error instanceof Error
+            ? purchaseResult.error.message
+            : String(purchaseResult.error ?? t('pro.purchaseFailed'));
+        Alert.alert(t('pro.purchaseFailed'), msg);
+      }
+    } catch (e) {
+      console.error('Claim offer error:', e);
+      Alert.alert(t('common.error'), t('pro.unavailable'));
+    } finally {
+      setClaiming(false);
     }
   };
 
@@ -66,8 +161,8 @@ export default function OneTimeOfferScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.title, { color: theme.text }]}>ONE TIME OFFER</Text>
-        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>You will never see this again</Text>
+        <Text style={[styles.title, { color: theme.text }]}>{t('oneTime.title')}</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{t('oneTime.subtitle')}</Text>
 
         <View style={styles.couponWrap}>
           <Image
@@ -77,9 +172,9 @@ export default function OneTimeOfferScreen() {
           />
         </View>
 
-        <Text style={[styles.expireTitle, { color: theme.text }]}>This offer will expire soon</Text>
+        <Text style={[styles.expireTitle, { color: theme.text }]}>{t('oneTime.expireSoon')}</Text>
         <Text style={[styles.expireDesc, { color: theme.textSecondary }]}>
-          Once you close your one-time-offer, it's gone! Save 50% with an yearly plan.
+          {t('oneTime.expireDesc')}
         </Text>
 
         <View style={styles.planCardWrap}>
@@ -89,11 +184,11 @@ export default function OneTimeOfferScreen() {
             end={{ x: 1, y: 0 }}
             style={styles.planCardBanner}
           >
-            <Text style={styles.badgeText}>LOWEST PRICE EVER</Text>
+            <Text style={styles.badgeText}>{t('oneTime.lowestPrice')}</Text>
             <View style={[styles.planCardInner, { backgroundColor: theme.background }]}>
               <View style={styles.planLeft}>
-                <Text style={[styles.planName, { color: theme.text }]}>Annual Plan</Text>
-                <Text style={[styles.planDesc, { color: theme.textSecondary }]}>12 months included</Text>
+                <Text style={[styles.planName, { color: theme.text }]}>{t('oneTime.annualPlan')}</Text>
+                <Text style={[styles.planDesc, { color: theme.textSecondary }]}>{t('oneTime.monthsIncluded')}</Text>
               </View>
               <View style={styles.planRight}>
                 <Text style={[styles.planPrice, { color: theme.text }]}>$19.99</Text>
@@ -103,16 +198,25 @@ export default function OneTimeOfferScreen() {
           </LinearGradient>
         </View>
 
-        <TouchableOpacity style={[styles.claimBtn, { backgroundColor: theme.text }]} onPress={handleClaimOffer} activeOpacity={0.85}>
-          <Text style={[styles.claimBtnText, { color: theme.background }]}>Claim Offer</Text>
+        <TouchableOpacity
+          style={[styles.claimBtn, { backgroundColor: theme.text }]}
+          onPress={handleClaimOffer}
+          activeOpacity={0.85}
+          disabled={claiming}
+        >
+          {claiming ? (
+            <ActivityIndicator color={theme.background} />
+          ) : (
+            <Text style={[styles.claimBtnText, { color: theme.background }]}>{t('oneTime.claimOffer')}</Text>
+          )}
         </TouchableOpacity>
 
         <View style={styles.footerLinks}>
           <TouchableOpacity onPress={() => Linking.openURL('https://plantus.app/privacy-policy/')}>
-            <Text style={[styles.footerLink, { color: theme.textTertiary }]}>Privacy Policy</Text>
+            <Text style={[styles.footerLink, { color: theme.textTertiary }]}>{t('pro.privacyPolicy')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => Linking.openURL('https://plantus.app/terms-of-use/')}>
-            <Text style={[styles.footerLink, { color: theme.textTertiary }]}>Terms Of Use</Text>
+            <Text style={[styles.footerLink, { color: theme.textTertiary }]}>{t('pro.termsOfUse')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

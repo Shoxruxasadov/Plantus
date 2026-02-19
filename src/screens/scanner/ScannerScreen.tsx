@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,28 +15,29 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  X,
+  Camera as CameraIcon,
+  Image as ImageIcon,
+  Plant as PlantIcon,
   Lightning,
   LightningSlash,
-  Image as ImageIcon,
-  Camera as CameraIcon,
   CameraRotate,
-  Plant,
   WarningCircle,
   Info,
 } from 'phosphor-react-native';
+import { setStatusBarStyle } from 'expo-status-bar';
 import { Camera, CameraView, CameraType, FlashMode } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 
-import { RootStackParamList } from '../../types';
-import { ScannerMode, identifyPlant } from '../../services/api';
+import { RootStackParamList, type ScannerMode, type Plant } from '../../types';
 import { DARK_COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
 import { useAppStore } from '../../store/appStore';
+import { useTranslation } from '../../i18n';
+import { identifyPlant } from '../../services/api';
 import { createSnap } from '../../services/supabase';
 import { triggerHaptic } from '../../utils/helpers';
 
@@ -45,18 +46,19 @@ type RouteProps = RouteProp<RootStackParamList, 'Scanner'>;
 
 const { width, height } = Dimensions.get('window');
 
-const analyzingSteps = [
-  { title: 'Scanning plant', subtitle: 'Looking at leaf shape, color, and texture' },
-  { title: 'Identifying species', subtitle: 'Matching your plant with our plant database' },
-  { title: 'Analyzing condition', subtitle: 'Checking signs of stress, health, or growth' },
-  { title: 'Preparing care tips', subtitle: 'Personalizing care advice just for your plant' },
-];
+const analyzingStepKeys = [
+  { title: 'scanner.step1.title', subtitle: 'scanner.step1.subtitle' },
+  { title: 'scanner.step2.title', subtitle: 'scanner.step2.subtitle' },
+  { title: 'scanner.step3.title', subtitle: 'scanner.step3.subtitle' },
+  { title: 'scanner.step4.title', subtitle: 'scanner.step4.subtitle' },
+] as const;
 
 export default function ScannerScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const insets = useSafeAreaInsets();
-  const { userCollection, vibration, isPro, remainingScans, decrementRemainingScans } = useAppStore();
+  const { t } = useTranslation();
+  const { userCollection, vibration, isPro, remainingScans, decrementRemainingScans, darkMode } = useAppStore();
   const theme = DARK_COLORS; // Scanner faqat dark mode
 
   const cameraRef = useRef<CameraView>(null);
@@ -104,6 +106,16 @@ export default function ScannerScreen() {
   };
 
   const isMultiPhotoMode = mode === 'multiple' || mode === 'diagnose';
+
+  // Status bar: Scanner’da doim light; chiqganda app darkMode ga qarab qaytariladi
+  useFocusEffect(
+    useCallback(() => {
+      setStatusBarStyle('light');
+      return () => {
+        setStatusBarStyle(darkMode ? 'light' : 'dark');
+      };
+    }, [darkMode])
+  );
 
   // When switching to identify, clear multi queue
   useEffect(() => {
@@ -172,7 +184,7 @@ export default function ScannerScreen() {
     if (loading) {
       setAnalyzingStep(0);
       interval = setInterval(() => {
-        setAnalyzingStep((prev) => (prev + 1) % analyzingSteps.length);
+        setAnalyzingStep((prev) => (prev + 1) % analyzingStepKeys.length);
       }, 3000);
     }
     return () => {
@@ -184,11 +196,11 @@ export default function ScannerScreen() {
     if (!cameraRef.current) return;
     if (!isPro && remainingScans <= 0) {
       Alert.alert(
-        'No scans left',
-        'Get more scans to continue identifying plants.',
+        t('scanner.alertNoScans'),
+        t('scanner.alertNoScansMessage'),
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Get more', onPress: () => navigation.navigate('Pro', { fromScanner: true }) },
+          { text: t('scanner.alertCancel'), style: 'cancel' },
+          { text: t('scanner.getMore'), onPress: () => navigation.navigate('Pro', { fromScanner: true }) },
         ]
       );
       return;
@@ -226,7 +238,7 @@ export default function ScannerScreen() {
       await processImage(photo.base64, photo.uri);
     } catch (error) {
       console.error('Capture error:', error);
-      Alert.alert('Error', 'Failed to capture image');
+      Alert.alert(t('scanner.alertError'), t('scanner.alertCaptureFailed'));
       setLoading(false);
     }
   };
@@ -234,11 +246,11 @@ export default function ScannerScreen() {
   const handlePickImage = async () => {
     if (!isPro && remainingScans <= 0) {
       Alert.alert(
-        'No scans left',
-        'Get more scans to continue identifying plants.',
+        t('scanner.alertNoScans'),
+        t('scanner.alertNoScansMessage'),
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Get more', onPress: () => navigation.navigate('Pro', { fromScanner: true }) },
+          { text: t('scanner.alertCancel'), style: 'cancel' },
+          { text: t('scanner.getMore'), onPress: () => navigation.navigate('Pro', { fromScanner: true }) },
         ]
       );
       return;
@@ -258,9 +270,9 @@ export default function ScannerScreen() {
       if (isMultiPhotoMode) {
         if (assets.length !== 3) {
           Alert.alert(
-            'Select 3 photos',
-            'In Multiple/Diagnose mode please select exactly 3 images of the same plant.',
-            [{ text: 'OK' }]
+            t('scanner.alertSelect3'),
+            t('scanner.alertSelect3Message'),
+            [{ text: t('scanner.alertOk') }]
           );
           return;
         }
@@ -278,7 +290,7 @@ export default function ScannerScreen() {
       }
     } catch (error) {
       console.error('Pick image error:', error);
-      Alert.alert('Error', 'Failed to pick image');
+      Alert.alert(t('scanner.alertError'), t('scanner.alertPickFailed'));
     }
   };
 
@@ -380,18 +392,16 @@ export default function ScannerScreen() {
     return (
       <View style={styles.permissionContainer}>
         <CameraIcon size={64} color={theme.textTertiary} />
-        <Text style={styles.permissionTitle}>Camera Access Required</Text>
-        <Text style={styles.permissionText}>
-          Please enable camera access in your device settings to scan plants.
-        </Text>
+        <Text style={styles.permissionTitle}>{t('scanner.cameraRequired')}</Text>
+        <Text style={styles.permissionText}>{t('scanner.cameraMessage')}</Text>
         <TouchableOpacity style={styles.permissionButton} onPress={handleClose}>
-          <Text style={styles.permissionButtonText}>Go Back</Text>
+          <Text style={styles.permissionButtonText}>{t('scanner.goBack')}</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const currentStep = analyzingSteps[analyzingStep];
+  const currentStep = analyzingStepKeys[analyzingStep];
 
   // 3:4 kamera: kenglikni to'ldiradi (rasmdagi kabi), balandlik markazda
   const cameraBoxWidth = width;
@@ -407,14 +417,14 @@ export default function ScannerScreen() {
       {!isPro && (
         <View style={[styles.scansBarContainer, { backgroundColor: theme.backgroundTertiary }]}>
           <Text style={[styles.scansBarText, { color: theme.text }]}>
-            Remaining scans: {remainingScans}
+            {t('scanner.remainingScans')}: {remainingScans}
           </Text>
           <TouchableOpacity
             style={styles.scansBarButton}
             onPress={() => navigation.navigate('Pro', { fromScanner: true })}
             activeOpacity={0.8}
           >
-            <Text style={styles.scansBarButtonText}>Get more</Text>
+            <Text style={styles.scansBarButtonText}>{t('scanner.getMore')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -475,8 +485,8 @@ export default function ScannerScreen() {
                 <Image source={{ uri: capturedImage }} style={styles.circularImage} />
               </View>
             )}
-            <Text style={styles.loadingTitle}>{currentStep.title}</Text>
-            <Text style={styles.loadingSubtitle}>{currentStep.subtitle}</Text>
+            <Text style={styles.loadingTitle}>{t(currentStep.title)}</Text>
+            <Text style={styles.loadingSubtitle}>{t(currentStep.subtitle)}</Text>
             <ActivityIndicator size="large" color={theme.textLight} style={{ marginTop: SPACING.xl }} />
           </View>
         </View>
@@ -488,13 +498,11 @@ export default function ScannerScreen() {
 
           {/* Error bottom sheet */}
           <View style={styles.errorSheet}>
-            <Text style={styles.errorTitle}>There is no plant</Text>
-            <Text style={styles.errorSubtitle}>
-              Unable to identify plant! Please try retaking your photo
-            </Text>
+            <Text style={styles.errorTitle}>{t('scanner.noPlant')}</Text>
+            <Text style={styles.errorSubtitle}>{t('scanner.noPlantSubtitle')}</Text>
 
             <View style={styles.errorImageContainer}>
-              <Plant size={64} color={theme.primary} weight='fill' />
+              <PlantIcon size={64} color={theme.primary} weight='fill' />
               <View style={styles.errorBadge}>
                 <WarningCircle size={20} color="#FF9800" />
               </View>
@@ -505,7 +513,7 @@ export default function ScannerScreen() {
               onPress={handleRetake}
             >
               <CameraIcon size={20} color={theme.textLight} />
-              <Text style={styles.retakeButtonText}>Retake Photo</Text>
+              <Text style={styles.retakeButtonText}>{t('scanner.retake')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -528,7 +536,7 @@ export default function ScannerScreen() {
               }}
             >
               <Text style={[styles.modeButtonText, mode === 'identify' && styles.modeButtonTextActive]}>
-                Identify
+                {t('scanner.modeIdentify')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -540,7 +548,7 @@ export default function ScannerScreen() {
               }}
             >
               <Text style={[styles.modeButtonText, mode === 'diagnose' && styles.modeButtonTextActive]}>
-                Diagnose
+                {t('scanner.modeDiagnose')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -552,7 +560,7 @@ export default function ScannerScreen() {
               }}
             >
               <Text style={[styles.modeButtonText, mode === 'multiple' && styles.modeButtonTextActive]}>
-                Multiple
+                {t('scanner.modeMultiple')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -563,7 +571,7 @@ export default function ScannerScreen() {
         {!scanError && isMultiPhotoMode && multiCaptureQueue.length > 0 && (
           <View style={[styles.multiQueueBar, { backgroundColor: theme.backgroundTertiary }]}>
             <Text style={[styles.multiQueueText, { color: theme.text }]}>
-              Photo {multiCaptureQueue.length}/3
+              {t('scanner.photoCount', { n: multiCaptureQueue.length })}
             </Text>
             <View style={styles.multiQueueThumbnails}>
               {multiCaptureQueue.map((p, i) => (
@@ -575,7 +583,7 @@ export default function ScannerScreen() {
               onPress={() => setMultiCaptureQueue([])}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={[styles.multiQueueResetText, { color: theme.primary }]}>Reset</Text>
+              <Text style={[styles.multiQueueResetText, { color: theme.primary }]}>{t('scanner.reset')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -619,7 +627,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     zIndex: 100,
     left: '4%',
-    top: 100,
+    top:"13%",
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -947,14 +955,14 @@ const styles = StyleSheet.create({
   },
   multiQueueBar: {
     position: 'absolute',
-    bottom: 118,
-    left: '5%',
-    right: '5%',
+    bottom: "25.5%",
+    left: '4%',
+    right: '4%',
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.md,
-    borderRadius: RADIUS.lg,
+    borderRadius: RADIUS.md,
     zIndex: 15,
     gap: SPACING.sm,
   },

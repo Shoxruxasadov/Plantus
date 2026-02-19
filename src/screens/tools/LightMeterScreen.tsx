@@ -25,24 +25,25 @@ try {
 
 import { FONT_SIZES, SPACING, RADIUS, COLORS } from '../../utils/theme';
 import { useTheme } from '../../hooks';
+import { useTranslation } from '../../i18n';
 
 const MIN_LUX = 0;
 const MAX_LUX = 100000;
 const CAMERA_SAMPLE_INTERVAL_MS = 100;
 
-const LIGHT_LEVELS: { min: number; level: string; color: string; icon: string; description: string }[] = [
-  { min: 0, level: 'Very Dark', color: '#1A1A2E', icon: 'moon', description: 'Almost no light' },
-  { min: 10, level: 'Dark', color: '#16213E', icon: 'moon', description: 'Night vision' },
-  { min: 50, level: 'Dim', color: '#0F4C75', icon: 'cloudsun', description: 'Minimal reading' },
-  { min: 200, level: 'Indoor', color: '#3282B8', icon: 'lightbulb', description: 'Comfortable indoor' },
-  { min: 1000, level: 'Bright', color: '#BBE1FA', icon: 'cloudsun', description: 'Office / retail' },
-  { min: 10000, level: 'Very Bright', color: '#FFD93D', icon: 'sun', description: 'Overcast outdoor' },
-  { min: 50000, level: 'Daylight', color: '#FF6B6B', icon: 'sun', description: 'Direct sunlight' },
+const LIGHT_LEVEL_KEYS: { min: number; levelKey: string; descKey: string; color: string; icon: string }[] = [
+  { min: 0, levelKey: 'lightMeter.veryDark', descKey: 'lightMeter.veryDarkDesc', color: '#1A1A2E', icon: 'moon' },
+  { min: 10, levelKey: 'lightMeter.dark', descKey: 'lightMeter.darkDesc', color: '#16213E', icon: 'moon' },
+  { min: 50, levelKey: 'lightMeter.dim', descKey: 'lightMeter.dimDesc', color: '#0F4C75', icon: 'cloudsun' },
+  { min: 200, levelKey: 'lightMeter.indoor', descKey: 'lightMeter.indoorDesc', color: '#3282B8', icon: 'lightbulb' },
+  { min: 1000, levelKey: 'lightMeter.bright', descKey: 'lightMeter.brightDesc', color: '#BBE1FA', icon: 'cloudsun' },
+  { min: 10000, levelKey: 'lightMeter.veryBright', descKey: 'lightMeter.veryBrightDesc', color: '#FFD93D', icon: 'sun' },
+  { min: 50000, levelKey: 'lightMeter.daylight', descKey: 'lightMeter.daylightDesc', color: '#FF6B6B', icon: 'sun' },
 ];
 
 function getLevelForLux(lux: number) {
-  let out = LIGHT_LEVELS[0];
-  for (const l of LIGHT_LEVELS) {
+  let out = LIGHT_LEVEL_KEYS[0];
+  for (const l of LIGHT_LEVEL_KEYS) {
     if (lux >= l.min) out = l;
   }
   return out;
@@ -72,6 +73,7 @@ function luminanceToLux(luminance: number): number {
 export default function LightMeterScreen() {
   const navigation = useNavigation<{ goBack: () => void }>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { theme, isDark } = useTheme();
   const [permission, requestPermission] = useCameraPermissions();
   const [lux, setLux] = useState<number>(0);
@@ -270,7 +272,7 @@ export default function LightMeterScreen() {
     return (
       <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={theme.primary} />
-        <Text style={[styles.initText, { color: theme.textSecondary, marginTop: 16 }]}>Checking camera...</Text>
+        <Text style={[styles.initText, { color: theme.textSecondary, marginTop: 16 }]}>{t('lightMeter.checkingCamera')}</Text>
       </View>
     );
   }
@@ -282,13 +284,13 @@ export default function LightMeterScreen() {
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <ArrowLeft size={24} color={theme.text} weight="bold" />
           </TouchableOpacity>
-          <Text style={[styles.title, { color: theme.text }]}>Light Meter</Text>
+          <Text style={[styles.title, { color: theme.text }]}>{t('lightMeter.title')}</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={[styles.permissionText, { color: theme.text }]}>Camera access is needed to measure light.</Text>
+          <Text style={[styles.permissionText, { color: theme.text }]}>{t('lightMeter.cameraNeeded')}</Text>
           <TouchableOpacity style={[styles.permissionBtn, { backgroundColor: COLORS.primary }]} onPress={requestPermission}>
-            <Text style={styles.permissionBtnText}>Allow camera</Text>
+            <Text style={styles.permissionBtnText}>{t('lightMeter.allowCamera')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -315,7 +317,7 @@ export default function LightMeterScreen() {
         <View style={[StyleSheet.absoluteFill, styles.initializingOverlay]}>
           <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
           <ActivityIndicator size="large" color="#fff" />
-          <Text style={styles.initializingText}>Preparing camera...</Text>
+          <Text style={styles.initializingText}>{t('lightMeter.preparingCamera')}</Text>
         </View>
       )}
 
@@ -323,7 +325,7 @@ export default function LightMeterScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={12}>
           <CaretLeft size={24} color="#fff" weight="bold" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Light Meter</Text>
+        <Text style={styles.headerTitle}>{t('lightMeter.title')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -335,10 +337,10 @@ export default function LightMeterScreen() {
             </View>
             <View style={styles.luxRow}>
               <Text style={[styles.luxValue, { color: levelInfo.color }]}>{displayLux}</Text>
-              <Text style={[styles.luxUnit, { color: levelInfo.color + 'DD' }]}>lux</Text>
+              <Text style={[styles.luxUnit, { color: levelInfo.color + 'DD' }]}>{t('lightMeter.lux')}</Text>
             </View>
-            <Text style={[styles.levelName, { color: theme.text }]}>{levelInfo.level}</Text>
-            <Text style={[styles.levelDesc, { color: theme.textSecondary }]}>{levelInfo.description}</Text>
+            <Text style={[styles.levelName, { color: theme.text }]}>{t(levelInfo.levelKey)}</Text>
+            <Text style={[styles.levelDesc, { color: theme.textSecondary }]}>{t(levelInfo.descKey)}</Text>
             <View style={[styles.progressTrack, { backgroundColor: (isDark ? '#fff' : '#000') + '22' }]}>
               <Animated.View
                 style={[styles.progressFill, progressAnimatedStyle, { backgroundColor: levelInfo.color }]}
@@ -351,8 +353,8 @@ export default function LightMeterScreen() {
             {sensorAvailable === false && showCamera && (
               <Text style={[styles.hint, { color: theme.textTertiary }]}>
                 {cameraLuxUnavailable
-                  ? 'Camera meter needs dev build: npx expo run:ios'
-                  : 'Estimated lux • Best for comparing rooms, not pro measurement'}
+                  ? t('lightMeter.hintDevBuild')
+                  : t('lightMeter.hintEstimated')}
               </Text>
             )}
           </View>

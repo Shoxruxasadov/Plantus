@@ -8,6 +8,7 @@ import { House, Camera, Sparkle, User, PlantIcon } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppStore } from '../store/appStore';
+import { useTranslation } from '../i18n';
 import { getAIChat, supabase } from '../services/supabase';
 import { triggerHaptic } from '../utils/helpers';
 import { RootStackParamList, BottomTabParamList } from '../types';
@@ -131,7 +132,9 @@ const ScannerTabButton = ({ onPress }: { onPress?: (e: GestureResponderEvent) =>
 // Bottom Tab Navigator
 const TabNavigator = () => {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const darkMode = useAppStore((s) => s.darkMode);
+  const isPro = useAppStore((s) => s.isPro);
   const userCollection = useAppStore((s) => s.userCollection);
   const assistantChatId = useAppStore((s) => s.assistantChatId);
   const chatCreated = useAppStore((s) => s.chatCreated);
@@ -143,6 +146,10 @@ const TabNavigator = () => {
   const handleAssistantTabPress = (e: any, navigation: any) => {
     e.preventDefault();
     triggerHaptic(vibration);
+    if (!isPro) {
+      navigation.navigate('AssistantTab');
+      return;
+    }
     if (!userCollection?.id) {
       navigation.navigate('AssistantTab');
       return;
@@ -218,7 +225,7 @@ const TabNavigator = () => {
       <Tab.Screen
         name="HomeTab"
         component={HomeScreen}
-        options={{ tabBarLabel: 'Home' }}
+        options={{ tabBarLabel: t('nav.home') }}
         listeners={() => ({
           tabPress: () => triggerHaptic(vibration),
         })}
@@ -226,7 +233,7 @@ const TabNavigator = () => {
       <Tab.Screen
         name="GardenTab"
         component={MyGardenScreen}
-        options={{ tabBarLabel: 'My Garden' }}
+        options={{ tabBarLabel: t('nav.myGarden') }}
         listeners={() => ({
           tabPress: () => triggerHaptic(vibration),
         })}
@@ -251,7 +258,7 @@ const TabNavigator = () => {
       <Tab.Screen
         name="AssistantTab"
         component={AssistantScreen}
-        options={{ tabBarLabel: 'Assistant' }}
+        options={{ tabBarLabel: t('nav.assistant') }}
         listeners={({ navigation }) => ({
           tabPress: (e) => handleAssistantTabPress(e, navigation),
         })}
@@ -259,7 +266,7 @@ const TabNavigator = () => {
       <Tab.Screen
         name="ProfileTab"
         component={ProfileScreen}
-        options={{ tabBarLabel: 'Profile' }}
+        options={{ tabBarLabel: t('nav.profile') }}
         listeners={() => ({
           tabPress: () => triggerHaptic(vibration),
         })}

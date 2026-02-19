@@ -28,6 +28,7 @@ import { RootStackParamList, Plant, Group } from '../../types';
 import { COLORS, FONT_SIZES, SPACING, RADIUS, SHADOWS, PLACEHOLDER_IMAGE } from '../../utils/theme';
 import { useTheme } from '../../hooks';
 import { useAppStore } from '../../store/appStore';
+import { useTranslation } from '../../i18n';
 import {
   getGardenPlants,
   getGroups,
@@ -45,12 +46,6 @@ import { hasTaskDueToday } from '../../utils/helpers';
 
 const CARE_PLAN_KEYS = ['Watering', 'Fertilize', 'Repotting', 'Pruning', 'Humidity', 'Soilcheck'];
 
-const TABS: { key: TabType; label: string }[] = [
-  { key: 'garden', label: 'My Garden' },
-  { key: 'reminders', label: 'Reminders' },
-  { key: 'history', label: 'Snap History' },
-];
-
 // ---- Reminder helpers ----
 const CARE_ICONS: Record<string, any> = {
   Watering: require('../../../assets/images/Careplan1.png'),
@@ -59,10 +54,6 @@ const CARE_ICONS: Record<string, any> = {
   Pruning: require('../../../assets/images/Careplan4.png'),
   Humidity: require('../../../assets/images/Careplan5.png'),
   Soilcheck: require('../../../assets/images/Careplan6.png'),
-};
-const CARE_LABELS: Record<string, string> = {
-  Watering: 'Watering', Fertilize: 'Fertilize', Repotting: 'Repotting',
-  Pruning: 'Pruning', Humidity: 'Humidity', Soilcheck: 'Soil check',
 };
 function safeParse(val: any) {
   if (!val) return null;
@@ -94,8 +85,26 @@ type TabType = 'garden' | 'reminders' | 'history';
 export default function MyGardenScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const { isLoggedIn, userCollection, darkMode } = useAppStore();
+
+  const TABS: { key: TabType; label: string }[] = [
+    { key: 'garden', label: t('garden.tabGarden') },
+    { key: 'reminders', label: t('garden.tabReminders') },
+    { key: 'history', label: t('garden.tabSnapHistory') },
+  ];
+  const getCareLabel = (key: string) => {
+    const map: Record<string, string> = {
+      Watering: t('garden.careWatering'),
+      Fertilize: t('garden.careFertilize'),
+      Repotting: t('garden.careRepotting'),
+      Pruning: t('garden.carePruning'),
+      Humidity: t('garden.careHumidity'),
+      Soilcheck: t('garden.careSoilCheck'),
+    };
+    return map[key] ?? key;
+  };
 
   const [activeTab, setActiveTab] = useState<TabType>('garden');
   const [plants, setPlants] = useState<Plant[]>([]);
@@ -243,7 +252,7 @@ export default function MyGardenScreen() {
       await removePlantReminders(plant.id);
       await loadData();
     } catch (e) {
-      Alert.alert('Error', 'Failed to turn off reminders');
+      Alert.alert(t('common.error'), t('garden.errorTurnOff'));
     }
     closeReminderSheet();
   }, [reminderSheetPlantIdx, reminderPlants, plants, closeReminderSheet]);
@@ -253,11 +262,11 @@ export default function MyGardenScreen() {
     const plant = reminderPlants[reminderSheetPlantIdx];
     if (!plant) return;
     Alert.alert(
-      'Turn off all care reminders',
-      `Disable all notification reminders for "${plant.name}"? You can turn them back on from the plant's care plan.`,
+      t('garden.alertTurnOff'),
+      t('garden.alertTurnOffMessage', { name: plant.name }),
       [
-        { text: 'Cancel', style: 'cancel', onPress: () => {} },
-        { text: 'Turn off', style: 'destructive', onPress: handleTurnOffAllCareReminders },
+        { text: t('garden.cancel'), style: 'cancel', onPress: () => {} },
+        { text: t('garden.turnOff'), style: 'destructive', onPress: handleTurnOffAllCareReminders },
       ]
     );
   }, [reminderSheetPlantIdx, reminderPlants, handleTurnOffAllCareReminders]);
@@ -331,7 +340,7 @@ export default function MyGardenScreen() {
       }
 
       const tasks: ReminderPlant['tasks'] = [];
-      for (const careKey of Object.keys(CARE_LABELS)) {
+      for (const careKey of CARE_PLAN_KEYS) {
         const item = cp[careKey] || cp[careKey.charAt(0).toLowerCase() + careKey.slice(1)];
         if (!item) continue;
         const repeat = item.Repeat || item.repeat;
@@ -343,7 +352,7 @@ export default function MyGardenScreen() {
         if (todayEntry) {
           status = (todayEntry.Status || todayEntry.status) === 'Done' ? 'Done' : 'Skipped';
         }
-        tasks.push({ key: careKey, label: CARE_LABELS[careKey], status });
+        tasks.push({ key: careKey, label: getCareLabel(careKey), status });
       }
       if (tasks.length === 0) continue;
 
@@ -405,12 +414,12 @@ export default function MyGardenScreen() {
 
   const handleDeleteSnap = (snap: any) => {
     Alert.alert(
-      'Delete Snap',
-      `Remove "${snap.name || 'this snap'}" from history?`,
+      t('garden.alertDeleteSnap'),
+      t('garden.alertDeleteSnapMessage', { name: snap.name || 'this snap' }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('garden.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('garden.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -418,10 +427,10 @@ export default function MyGardenScreen() {
               if (!error) {
                 setSnaps((prev) => prev.filter((s) => s.id !== snap.id));
               } else {
-                Alert.alert('Error', 'Failed to delete snap');
+                Alert.alert(t('common.error'), t('garden.errorDeleteSnap'));
               }
             } catch (_e) {
-              Alert.alert('Error', 'Failed to delete snap');
+              Alert.alert(t('common.error'), t('garden.errorDeleteSnap'));
             }
           },
         },
@@ -435,17 +444,16 @@ export default function MyGardenScreen() {
 
   const handleDeletePlant = (plant: Plant) => {
     Alert.alert(
-      'Remove Plant',
-      `Remove "${plant.name}" from your garden?`,
+      t('garden.alertRemovePlant'),
+      t('garden.alertRemovePlantMessage', { name: plant.name }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('garden.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('garden.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               const plantIdStr = String(plant.id);
-              // Remove plant from any space (group) that contains it
               const groupsWithPlant = groups.filter(
                 (g) => g.plant_id && g.plant_id.some((id) => String(id) === plantIdStr)
               );
@@ -467,10 +475,10 @@ export default function MyGardenScreen() {
                 }
                 buildReminders(nextPlants);
               } else {
-                Alert.alert('Error', 'Failed to remove plant');
+                Alert.alert(t('common.error'), t('garden.errorRemovePlant'));
               }
             } catch (_e) {
-              Alert.alert('Error', 'Failed to remove plant');
+              Alert.alert(t('common.error'), t('garden.errorRemovePlant'));
             }
           },
         },
@@ -494,14 +502,14 @@ export default function MyGardenScreen() {
     try {
       const { data, error } = await createGroup(spaceName.trim(), userCollection.id);
       if (error) {
-        Alert.alert('Error', error.message || 'Failed to create space');
+        Alert.alert(t('common.error'), error.message || t('garden.errorCreateSpace'));
       } else if (data) {
         setGroups((prev) => [...prev, data as Group]);
         setSelectedGroupId(data.id);
         closeCreateSpaceSheet();
       }
     } catch (e) {
-      Alert.alert('Error', 'Something went wrong');
+      Alert.alert(t('common.error'), t('garden.errorGeneric'));
     } finally {
       setCreating(false);
     }
@@ -537,19 +545,18 @@ export default function MyGardenScreen() {
     closeOptionsSheet();
 
     Alert.alert(
-      'Delete Space',
-      `Are you sure you want to delete "${selectedGroup.name}"? Plants will be moved to ungrouped.`,
+      t('garden.alertDeleteSpace'),
+      t('garden.alertDeleteSpaceMessage', { name: selectedGroup.name }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('garden.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('garden.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               const { error } = await deleteGroup(selectedGroup.id);
               if (!error) {
                 setGroups((prev) => prev.filter((g) => g.id !== selectedGroup.id));
-                // Move plants to ungrouped
                 setPlants((prev) =>
                   prev.map((p) =>
                     (p as any).group === selectedGroup.id ? { ...p, group: undefined } : p
@@ -560,7 +567,7 @@ export default function MyGardenScreen() {
                 }
               }
             } catch (_e) {
-              Alert.alert('Error', 'Failed to delete space');
+              Alert.alert(t('common.error'), t('garden.errorDeleteSpace'));
             }
           },
         },
@@ -610,14 +617,14 @@ export default function MyGardenScreen() {
     if (!plant) return;
 
     if (currentStatus === 'Done') {
-      Alert.alert('Undo Task', `Remove "${CARE_LABELS[taskKey]}" from today's completed?`, [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Undo', onPress: () => updateReminderJournal(plantIdx, taskKey, null) },
+      Alert.alert(t('garden.alertUndoTask'), t('garden.alertRemoveFromCompleted', { name: getCareLabel(taskKey) }), [
+        { text: t('garden.cancel'), style: 'cancel' },
+        { text: t('garden.undo'), onPress: () => updateReminderJournal(plantIdx, taskKey, null) },
       ]);
     } else {
-      Alert.alert('Complete Task', `Mark "${CARE_LABELS[taskKey]}" as done for today?`, [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Yes', onPress: () => updateReminderJournal(plantIdx, taskKey, 'Done') },
+      Alert.alert(t('garden.alertCompleteTask'), t('garden.alertMarkDone', { name: getCareLabel(taskKey) }), [
+        { text: t('garden.cancel'), style: 'cancel' },
+        { text: t('garden.yes'), onPress: () => updateReminderJournal(plantIdx, taskKey, 'Done') },
       ]);
     }
   };
@@ -649,7 +656,7 @@ export default function MyGardenScreen() {
         return copy;
       });
     } catch (error) {
-      Alert.alert('Error', 'Failed to update task');
+      Alert.alert(t('common.error'), t('garden.errorUpdateTask'));
     }
   };
 
@@ -663,13 +670,13 @@ export default function MyGardenScreen() {
         style={styles.snapHistoryEmptyImage}
         resizeMode="contain"
       />
-      <Text style={[styles.emptyTitle, { color: theme.text }]}>You didn't added any plant</Text>
+      <Text style={[styles.emptyTitle, { color: theme.text }]}>{t('garden.emptyNoPlant')}</Text>
       <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>
-        Create space and add your plants where{'\n'}do you want
+        {t('garden.emptyDescription')}
       </Text>
       <TouchableOpacity style={styles.primaryBtn} onPress={handleOpenCreateSpace}>
         <Plus size={20} color={COLORS.textLight} />
-        <Text style={styles.primaryBtnText}>Create a Space</Text>
+        <Text style={styles.primaryBtnText}>{t('garden.createSpace')}</Text>
       </TouchableOpacity>
       <View style={{height: 68}}></View>
     </View>
@@ -683,13 +690,13 @@ export default function MyGardenScreen() {
         style={styles.snapHistoryEmptyImage}
         resizeMode="contain"
       />
-      <Text style={[styles.emptyTitle, { color: theme.text }]}>Snap history is empty</Text>
+      <Text style={[styles.emptyTitle, { color: theme.text }]}>{t('garden.snapHistoryEmpty')}</Text>
       <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>
         Snap plant and get more information{'\n'}and care plan
       </Text>
       <TouchableOpacity style={styles.primaryBtn} onPress={handleAddPlant}>
         <Camera size={18} color={COLORS.textLight} />
-        <Text style={styles.primaryBtnText}>Snap a Plant</Text>
+        <Text style={styles.primaryBtnText}>{t('garden.snapPlant')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -771,7 +778,7 @@ export default function MyGardenScreen() {
       >
         {/* Spaces Header */}
         <View style={styles.spacesHeader}>
-          <Text style={[styles.spacesTitle, { color: theme.text }]}>Spaces</Text>
+          <Text style={[styles.spacesTitle, { color: theme.text }]}>{t('garden.spaces')}</Text>
           <TouchableOpacity onPress={handleOpenCreateSpace}>
             <PlusCircle size={28} color={theme.text} weight="fill" />
           </TouchableOpacity>
@@ -820,7 +827,7 @@ export default function MyGardenScreen() {
         {/* All My Plants */}
         {plants.length > 0 && (
           <>
-            <Text style={[styles.allPlantsTitle, { color: theme.text }]}>All My Plants</Text>
+            <Text style={[styles.allPlantsTitle, { color: theme.text }]}>{t('garden.allPlants')}</Text>
             {plants.map((plant) => (
               <Swipeable
                 key={plant.id}
@@ -876,7 +883,7 @@ export default function MyGardenScreen() {
         style={styles.snapHistoryEmptyImage}
         resizeMode="contain"
       />
-          <Text style={[styles.emptyTitle, { color: theme.text }]}>No care reminders yet</Text>
+          <Text style={[styles.emptyTitle, { color: theme.text }]}>{t('garden.noReminders')}</Text>
           <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>Add plants to your garden to see care{'\n'}reminders here.</Text>
           <View style={{height: 40}}></View>
         </View>
@@ -953,7 +960,7 @@ export default function MyGardenScreen() {
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.backgroundSecondary }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: theme.backgroundSecondary }]}>
-        <Text style={[styles.title, { color: theme.text }]}>My Garden</Text>
+        <Text style={[styles.title, { color: theme.text }]}>{t('garden.tabGarden')}</Text>
       </View>
 
       {/* Tab Switcher */}
@@ -1025,12 +1032,12 @@ export default function MyGardenScreen() {
             <Animated.View style={[styles.sheetCenter, { transform: [{ scale: createSpaceScale }] }]}>
               <View style={[styles.sheet, styles.sheetCenterCard, { backgroundColor: theme.background, paddingBottom: 20 }]} onStartShouldSetResponder={() => true}>
                 <View style={[styles.sheetHandle, { backgroundColor: 'transparent', marginBottom: 0, height: 8 }]} />
-                <Text style={[styles.sheetTitle, { color: theme.text }]}>Create Space</Text>
+                <Text style={[styles.sheetTitle, { color: theme.text }]}>{t('garden.createSpace')}</Text>
 
-                <Text style={[styles.inputLabel, { color: theme.text }]}>Name of Space</Text>
+                <Text style={[styles.inputLabel, { color: theme.text }]}>{t('garden.nameOfSpace')}</Text>
                 <TextInput
                   style={[styles.sheetInput, { backgroundColor: theme.backgroundSecondary, color: theme.text }, spaceName.length > 0 && styles.sheetInputActive]}
-                  placeholder="ex: My Office"
+                  placeholder={t('garden.spacePlaceholder')}
                   placeholderTextColor={theme.textTertiary}
                   value={spaceName}
                   onChangeText={setSpaceName}
@@ -1051,7 +1058,7 @@ export default function MyGardenScreen() {
                   activeOpacity={0.8}
                 >
                   <Text style={styles.sheetBtnText}>
-                    {creating ? 'Creating...' : 'Create Space'}
+                    {creating ? t('garden.creating') : t('garden.createSpaceButton')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -1077,7 +1084,7 @@ export default function MyGardenScreen() {
 
             <TouchableOpacity style={[styles.optionRow, { borderBottomColor: theme.borderLight }]} onPress={handleEditName} activeOpacity={0.7}>
               <PencilSimple size={22} color={theme.text} />
-              <Text style={[styles.optionText, { color: theme.text }]}>Edit Name</Text>
+              <Text style={[styles.optionText, { color: theme.text }]}>{t('garden.editName')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -1112,12 +1119,12 @@ export default function MyGardenScreen() {
             <Animated.View style={[styles.sheetCenter, { transform: [{ scale: editScale }] }]}>
               <View style={[styles.sheet, styles.sheetCenterCard, { backgroundColor: theme.background, paddingBottom: 20 }]} onStartShouldSetResponder={() => true}>
                 <View style={[styles.sheetHandle, { backgroundColor:  'transparent', marginBottom: 0, height: 8 }]} />
-                <Text style={[styles.sheetTitle, { color: theme.text }]}>Edit Name</Text>
+                <Text style={[styles.sheetTitle, { color: theme.text }]}>{t('garden.editName')}</Text>
 
-                <Text style={[styles.inputLabel, { color: theme.text }]}>Name of Space</Text>
+                <Text style={[styles.inputLabel, { color: theme.text }]}>{t('garden.nameOfSpace')}</Text>
                 <TextInput
                   style={[styles.sheetInput, { backgroundColor: theme.backgroundSecondary, color: theme.text }, editName.length > 0 && styles.sheetInputActive]}
-                  placeholder="Space name"
+                  placeholder={t('garden.spaceName')}
                   placeholderTextColor={theme.textTertiary}
                   value={editName}
                   onChangeText={setEditName}
@@ -1130,7 +1137,7 @@ export default function MyGardenScreen() {
                   disabled={!editName.trim()}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.sheetBtnText}>Save</Text>
+                  <Text style={styles.sheetBtnText}>{t('garden.save')}</Text>
                 </TouchableOpacity>
               </View>
             </Animated.View>
@@ -1151,7 +1158,7 @@ export default function MyGardenScreen() {
         <Animated.View style={[styles.sheetWrapper, { transform: [{ translateY: reminderSheetY }] }]} pointerEvents="box-none">
           <View style={[styles.sheet, { backgroundColor: theme.background }]} onStartShouldSetResponder={() => true}>
             <View style={[styles.sheetHandle, { backgroundColor: theme.border }]} />
-            <Text style={[styles.sheetTitle, { color: theme.text }]}>Care reminders</Text>
+            <Text style={[styles.sheetTitle, { color: theme.text }]}>{t('garden.careReminders')}</Text>
 
             <TouchableOpacity
               style={[styles.optionRow, { borderBottomColor: theme.borderLight }]}
@@ -1159,7 +1166,7 @@ export default function MyGardenScreen() {
               activeOpacity={0.7}
             >
               <BellSlash size={22} color={COLORS.error} />
-              <Text style={[styles.optionText, { color: COLORS.error }]}>Turn off all care reminders</Text>
+              <Text style={[styles.optionText, { color: COLORS.error }]}>{t('garden.turnOffAllReminders')}</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>

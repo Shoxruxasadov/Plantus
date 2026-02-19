@@ -25,12 +25,15 @@ import {
 } from "../../utils/theme";
 import { useTheme } from "../../hooks";
 import { useAppStore } from "../../store/appStore";
+import { useTranslation } from "../../i18n";
 import { getGardenPlants, updateGardenPlant } from "../../services/supabase";
 import { hasTaskDueToday } from "../../utils/helpers";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-// ---- Care plan keys & icons ----
+const CARE_PLAN_KEYS = ["Watering", "Fertilize", "Repotting", "Pruning", "Humidity", "Soilcheck"];
+
+// ---- Care plan icons ----
 const CARE_ICONS: Record<string, any> = {
   Watering: require("../../../assets/images/Careplan1.png"),
   Fertilize: require("../../../assets/images/Careplan2.png"),
@@ -38,15 +41,6 @@ const CARE_ICONS: Record<string, any> = {
   Pruning: require("../../../assets/images/Careplan4.png"),
   Humidity: require("../../../assets/images/Careplan5.png"),
   Soilcheck: require("../../../assets/images/Careplan6.png"),
-};
-
-const CARE_LABELS: Record<string, string> = {
-  Watering: "Watering",
-  Fertilize: "Fertilize",
-  Repotting: "Repotting",
-  Pruning: "Pruning",
-  Humidity: "Humidity",
-  Soilcheck: "Soil check",
 };
 
 // ---- Helpers ----
@@ -107,8 +101,21 @@ interface PlantWithTasks {
 export default function RemindersScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const { userCollection, isLoggedIn } = useAppStore();
+
+  const getCareLabel = (key: string) => {
+    const map: Record<string, string> = {
+      Watering: t("garden.careWatering"),
+      Fertilize: t("garden.careFertilize"),
+      Repotting: t("garden.careRepotting"),
+      Pruning: t("garden.carePruning"),
+      Humidity: t("garden.careHumidity"),
+      Soilcheck: t("garden.careSoilCheck"),
+    };
+    return map[key] ?? key;
+  };
 
   const [plants, setPlants] = useState<PlantWithTasks[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,7 +156,7 @@ export default function RemindersScreen() {
 
         // ---- Auto-Skipped: check yesterday ----
         let journalsUpdated = false;
-        for (const careKey of Object.keys(CARE_LABELS)) {
+        for (const careKey of CARE_PLAN_KEYS) {
           const item =
             cp[careKey] ||
             cp[careKey.charAt(0).toLowerCase() + careKey.slice(1)];
@@ -193,7 +200,7 @@ export default function RemindersScreen() {
         // ---- Build today's task list ----
         const tasks: PlantWithTasks["tasks"] = [];
 
-        for (const careKey of Object.keys(CARE_LABELS)) {
+        for (const careKey of CARE_PLAN_KEYS) {
           const item =
             cp[careKey] ||
             cp[careKey.charAt(0).toLowerCase() + careKey.slice(1)];
@@ -211,7 +218,7 @@ export default function RemindersScreen() {
 
           tasks.push({
             key: careKey,
-            label: CARE_LABELS[careKey],
+            label: getCareLabel(careKey),
             status,
           });
         }
@@ -261,25 +268,24 @@ export default function RemindersScreen() {
     if (currentStatus === "Done") {
       // Already done - ask to undo
       Alert.alert(
-        "Undo Task",
-        `Remove "${CARE_LABELS[taskKey]}" from today's completed tasks?`,
+        t("garden.alertUndoTask"),
+        t("garden.alertRemoveFromCompleted", { name: getCareLabel(taskKey) }),
         [
-          { text: "Cancel", style: "cancel" },
+          { text: t("garden.cancel"), style: "cancel" },
           {
-            text: "Undo",
+            text: t("garden.undo"),
             onPress: () => updateJournal(plantIndex, taskKey, null),
           },
         ],
       );
     } else {
-      // Mark as done
       Alert.alert(
-        "Complete Task",
-        `Mark "${CARE_LABELS[taskKey]}" as done for today?`,
+        t("garden.alertCompleteTask"),
+        t("garden.alertMarkDone", { name: getCareLabel(taskKey) }),
         [
-          { text: "Cancel", style: "cancel" },
+          { text: t("garden.cancel"), style: "cancel" },
           {
-            text: "Yes",
+            text: t("garden.yes"),
             onPress: () => updateJournal(plantIndex, taskKey, "Done"),
           },
         ],
@@ -346,7 +352,7 @@ export default function RemindersScreen() {
       });
     } catch (error) {
       console.error("[Reminders] Update error:", error);
-      Alert.alert("Error", "Failed to update task");
+      Alert.alert(t("common.error"), t("garden.errorUpdateTask"));
     }
   };
 
@@ -369,7 +375,7 @@ export default function RemindersScreen() {
         >
           <ArrowLeft size={24} color={theme.text} weight="bold" />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: theme.text }]}>Reminders</Text>
+        <Text style={[styles.title, { color: theme.text }]}>{t("reminders.title")}</Text>
         <View style={styles.backBtn} />
       </View>
 
@@ -380,10 +386,10 @@ export default function RemindersScreen() {
       ) : plants.length === 0 ? (
         <View style={styles.emptyWrap}>
           <Text style={[styles.emptyText, { color: theme.text }]}>
-            No care reminders yet
+            {t("reminders.noActive")}
           </Text>
           <Text style={[styles.emptyDesc, { color: theme.textSecondary }]}>
-            Add plants to your garden to see care reminders here.
+            {t("reminders.noActiveHint")}
           </Text>
         </View>
       ) : (

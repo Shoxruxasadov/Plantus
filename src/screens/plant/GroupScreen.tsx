@@ -32,6 +32,7 @@ import {
 import { RootStackParamList, Plant, Group } from '../../types';
 import { COLORS, FONT_SIZES, SPACING, RADIUS, PLACEHOLDER_IMAGE } from '../../utils/theme';
 import { useTheme } from '../../hooks';
+import { useTranslation } from '../../i18n';
 import { useAppStore } from '../../store/appStore';
 import {
   getGroupPlants,
@@ -105,6 +106,7 @@ export default function GroupScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const { userCollection } = useAppStore();
 
@@ -194,7 +196,7 @@ export default function GroupScreen() {
       setGroupName(name);
       changeNameSheet.closeSheet();
     } catch (e) {
-      Alert.alert('Error', 'Failed to change space name');
+      Alert.alert(t('common.error'), t('group.errorSpaceName'));
     } finally {
       setSavingName(false);
     }
@@ -203,15 +205,15 @@ export default function GroupScreen() {
   const handleDeleteGroup = () => {
     spaceSheet.closeSheet();
     showConfirmAlert(
-      'Delete Group',
-      'Are you sure you want to delete this group? Plants will be moved to ungrouped.',
+      t('group.deleteGroup'),
+      t('group.deleteGroupConfirm'),
       async () => {
         try {
           await deleteGroup(groupId);
           navigation.goBack();
         } catch (error) {
           console.error('Delete group error:', error);
-          Alert.alert('Error', 'Failed to delete group');
+          Alert.alert(t('common.error'), t('group.errorDelete'));
         }
       }
     );
@@ -243,7 +245,7 @@ export default function GroupScreen() {
       setSelectedPlant((p) => (p ? { ...p, name: editPlantName.trim() } : null));
       changePlantNameSheet.closeSheet();
     } catch (e) {
-      Alert.alert('Error', 'Failed to change plant name');
+      Alert.alert(t('common.error'), t('group.errorPlantName'));
     } finally {
       setSavingPlantName(false);
     }
@@ -258,7 +260,7 @@ export default function GroupScreen() {
       setOtherGroups(list);
       setChangeSpaceVisible(true);
     } catch (e) {
-      Alert.alert('Error', 'Failed to load groups');
+      Alert.alert(t('common.error'), t('group.errorLoad'));
     }
   };
 
@@ -276,7 +278,7 @@ export default function GroupScreen() {
       changeSpaceSheet.closeSheet();
       setSelectedPlant(null);
     } catch (e) {
-      Alert.alert('Error', 'Failed to move plant');
+      Alert.alert(t('common.error'), t('group.errorMove'));
     } finally {
       setMovingPlant(false);
     }
@@ -286,8 +288,8 @@ export default function GroupScreen() {
     if (!selectedPlant) return;
     plantSheet.closeSheet();
     showConfirmAlert(
-      'Delete from Garden',
-      `Remove "${selectedPlant.name}" from your garden?`,
+      t('group.deleteFromGarden'),
+      t('group.removePlantConfirm', { name: selectedPlant.name || '' }),
       async () => {
         try {
           const currentGroupPlantIds = plants.map((p) => Number(p.id));
@@ -296,7 +298,7 @@ export default function GroupScreen() {
           setPlants((prev) => prev.filter((p) => p.id !== selectedPlant.id));
           setSelectedPlant(null);
         } catch (e) {
-          Alert.alert('Error', 'Failed to remove plant');
+          Alert.alert(t('common.error'), t('group.errorRemove'));
         }
       }
     );
@@ -339,8 +341,8 @@ export default function GroupScreen() {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <PlantIcon size={48} color={theme.textTertiary} weight='fill' />
-      <Text style={[styles.emptyTitle, { color: theme.text }]}>No plants in this group</Text>
-      <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Add plants to this group from your garden</Text>
+      <Text style={[styles.emptyTitle, { color: theme.text }]}>{t('group.empty')}</Text>
+      <Text style={[styles.emptyText, { color: theme.textSecondary }]}>{t('group.emptyHint')}</Text>
     </View>
   );
 
@@ -414,15 +416,15 @@ export default function GroupScreen() {
         <Animated.View style={[styles.sheetWrapper, { transform: [{ translateY: spaceSheet.sheetY }] }]} pointerEvents="box-none">
           <View style={[styles.sheet, { backgroundColor: theme.background }]} onStartShouldSetResponder={() => true}>
             <View style={[styles.sheetHandle, { backgroundColor: theme.border }]} />
-            <Text style={[styles.sheetTitle, { color: theme.text }]}>Options</Text>
+            <Text style={[styles.sheetTitle, { color: theme.text }]}>{t('group.options')}</Text>
             {renderOptionRow(
               <PencilSimple size={22} color={theme.text} />,
-              'Change Name',
+              t('group.changeName'),
               openChangeName
             )}
             {renderOptionRow(
               <Trash size={22} color={theme.text} />,
-              'Delete',
+              t('garden.delete'),
               handleDeleteGroup,
               !groupDeletemode
             )}
@@ -449,20 +451,18 @@ export default function GroupScreen() {
             <Animated.View style={[styles.sheetCenter, { transform: [{ scale: changeNameSheet.scale }] }]}>
               <View style={[styles.sheet, styles.sheetCenterCard, { backgroundColor: theme.background, paddingBottom: 20 }]} onStartShouldSetResponder={() => true}>
                 <View style={[styles.sheetHandle, { backgroundColor:  'transparent', marginTop: 0, marginBottom: 0, height: 24 }]} />
-                <Text style={[styles.sheetTitle, { color: theme.text }]}>Change Space Name</Text>
-                <Text style={[styles.inputLabel, { color: theme.text }]}>Name of Space</Text>
+                <Text style={[styles.sheetTitle, { color: theme.text }]}>{t('group.changeSpaceName')}</Text>
+                <Text style={[styles.inputLabel, { color: theme.text }]}>{t('group.nameOfSpace')}</Text>
                 <TextInput
                   style={[styles.sheetInput, { backgroundColor: theme.backgroundSecondary, color: theme.text }]}
-                  placeholder="Space name"
+                  placeholder={t('group.spaceNamePlaceholder')}
                   placeholderTextColor={theme.textTertiary}
                   value={editSpaceName}
                   onChangeText={setEditSpaceName}
                   autoFocus
                 />
                 <View style={styles.sheetInfo}>
-                  <Text style={[styles.sheetInfoText, { color: theme.textSecondary }]}>
-                    Creating space is effective way of organizing your plants.
-                  </Text>
+                  <Text style={[styles.sheetInfoText, { color: theme.textSecondary }]}>{t('group.creatingSpaceHint')}</Text>
                 </View>
                 <TouchableOpacity
                   style={[styles.sheetBtn, savingName && styles.sheetBtnDisabled]}
@@ -470,7 +470,7 @@ export default function GroupScreen() {
                   disabled={savingName || !editSpaceName.trim()}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.sheetBtnText}>Change Space Name</Text>
+                  <Text style={styles.sheetBtnText}>{t('group.changeSpaceName')}</Text>
                 </TouchableOpacity>
               </View>
             </Animated.View>
@@ -491,20 +491,20 @@ export default function GroupScreen() {
         <Animated.View style={[styles.sheetWrapper, { transform: [{ translateY: plantSheet.sheetY }] }]} pointerEvents="box-none">
           <View style={[styles.sheet, { backgroundColor: theme.background }]} onStartShouldSetResponder={() => true}>
             <View style={[styles.sheetHandle, { backgroundColor: theme.border }]} />
-            <Text style={[styles.sheetTitle, { color: theme.text }]}>Options</Text>
+            <Text style={[styles.sheetTitle, { color: theme.text }]}>{t('group.options')}</Text>
             {renderOptionRow(
               <PencilSimple size={22} color={theme.text} />,
-              'Change Name',
+              t('group.changeName'),
               openChangePlantName
             )}
             {renderOptionRow(
               <ArrowsLeftRight size={22} color={theme.text} />,
-              'Change Space',
+              t('group.changeSpace'),
               openChangeSpace
             )}
             {renderOptionRow(
               <Trash size={22} color={theme.text} />,
-              'Delete from Garden',
+              t('group.deleteFromGarden'),
               handleDeleteFromGarden
             )}
           </View>
@@ -530,11 +530,11 @@ export default function GroupScreen() {
             <Animated.View style={[styles.sheetCenter, { transform: [{ scale: changePlantNameSheet.scale }] }]}>
               <View style={[styles.sheet, styles.sheetCenterCard, { backgroundColor: theme.background, paddingBottom: 20 }]} onStartShouldSetResponder={() => true}>
                 <View style={[styles.sheetHandle, { backgroundColor: 'transparent', marginTop: 0, marginBottom: 0, height: 24 }]} />
-                <Text style={[styles.sheetTitle, { color: theme.text }]}>Change Plant Name</Text>
-                <Text style={[styles.inputLabel, { color: theme.text }]}>Name of Plant</Text>
+                <Text style={[styles.sheetTitle, { color: theme.text }]}>{t('group.changePlantName')}</Text>
+                <Text style={[styles.inputLabel, { color: theme.text }]}>{t('group.nameOfPlant')}</Text>
                 <TextInput
                   style={[styles.sheetInput, { backgroundColor: theme.backgroundSecondary, color: theme.text }]}
-                  placeholder="Plant name"
+                  placeholder={t('group.plantNamePlaceholder')}
                   placeholderTextColor={theme.textTertiary}
                   value={editPlantName}
                   onChangeText={setEditPlantName}
@@ -546,7 +546,7 @@ export default function GroupScreen() {
                   disabled={savingPlantName || !editPlantName.trim()}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.sheetBtnText}>Save</Text>
+                  <Text style={styles.sheetBtnText}>{t('garden.save')}</Text>
                 </TouchableOpacity>
               </View>
             </Animated.View>
@@ -567,10 +567,10 @@ export default function GroupScreen() {
         <Animated.View style={[styles.sheetWrapper, { transform: [{ translateY: changeSpaceSheet.sheetY }] }]} pointerEvents="box-none">
           <View style={[styles.sheet, { backgroundColor: theme.background }]} onStartShouldSetResponder={() => true}>
             <View style={[styles.sheetHandle, { backgroundColor: theme.border }]} />
-            <Text style={[styles.sheetTitle, { color: theme.text }]}>Change Space</Text>
-            <Text style={[styles.sheetSubtitle, { color: theme.textSecondary }]}>Move to</Text>
+            <Text style={[styles.sheetTitle, { color: theme.text }]}>{t('group.changeSpace')}</Text>
+            <Text style={[styles.sheetSubtitle, { color: theme.textSecondary }]}>{t('group.moveTo')}</Text>
             {otherGroups.length === 0 ? (
-              <Text style={[styles.noGroupsText, { color: theme.textSecondary }]}>No other spaces. Create one from My Garden.</Text>
+              <Text style={[styles.noGroupsText, { color: theme.textSecondary }]}>{t('group.noOtherSpaces')}</Text>
             ) : (
               otherGroups.map((g) => (
                 <TouchableOpacity

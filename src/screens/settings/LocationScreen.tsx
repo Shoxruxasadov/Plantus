@@ -13,6 +13,7 @@ import { ArrowLeft, MapPin, MagnifyingGlass } from 'phosphor-react-native';
 
 import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../utils/theme';
 import { useTheme } from '../../hooks';
+import { useTranslation } from '../../i18n';
 import { useAppStore } from '../../store/appStore';
 import { Location } from '../../types';
 import { ALL_COUNTRIES } from '../../constants/countries';
@@ -20,6 +21,7 @@ import { ALL_COUNTRIES } from '../../constants/countries';
 export default function LocationScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const { location, setLocation } = useAppStore();
   const [searchQuery, setSearchQuery] = useState('');
@@ -66,7 +68,7 @@ export default function LocationScreen() {
         >
           <ArrowLeft size={24} color={theme.text} weight="bold" />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: theme.text }]}>Location</Text>
+        <Text style={[styles.title, { color: theme.text }]}>{t('location.title')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -76,7 +78,7 @@ export default function LocationScreen() {
           <MagnifyingGlass size={20} color={theme.textSecondary} />
           <TextInput
             style={[styles.searchInput, { color: theme.text }]}
-            placeholder="Search Country"
+            placeholder={t('location.searchPlaceholder')}
             placeholderTextColor={theme.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -91,11 +93,11 @@ export default function LocationScreen() {
         onPress={handleGetCurrentLocation}
       >
         <MapPin size={20} color={COLORS.primary} />
-        <Text style={[styles.currentLocationText, { color: theme.text }]}>Get current location</Text>
+        <Text style={[styles.currentLocationText, { color: theme.text }]}>{t('location.getCurrentLocation')}</Text>
       </TouchableOpacity>
 
       {/* Countries */}
-      <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>Countries</Text>
+      <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>{t('location.countries')}</Text>
       <FlatList
         data={filteredCountries}
         keyExtractor={(item) => item.code}

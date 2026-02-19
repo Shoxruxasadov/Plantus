@@ -29,8 +29,18 @@ export interface Weather {
 // Temperature units
 export type TemperatureUnit = 'metric' | 'imperial';
 
-// Languages
-export type Language = 'English' | 'Spanish' | 'German' | 'Turkish' | 'Korean' | 'Chinese' | 'Arabic';
+// Languages (display names; change only via iOS Settings → Plantus → Language)
+export type Language =
+  | 'English (US)'
+  | 'German (Deutsch)'
+  | 'French (Français)'
+  | 'Spanish (Español)'
+  | 'Portuguese (Português)'
+  | 'Japanese (日本語)'
+  | 'Korean (한국어)'
+  | 'Chinese Simplified'
+  | 'Thai (ไทย)'
+  | 'Indonesian (Bahasa)';
 
 // Reminder types
 export interface Reminder {
@@ -264,7 +274,7 @@ export type RootStackParamList = {
   Repotting: undefined;
 
   // Subscription screens
-  Pro: { isFirstStep?: boolean; fromScanner?: boolean };
+  Pro: { isFirstStep?: boolean; fromScanner?: boolean; fromAssistant?: boolean; fromPlantHelp?: boolean };
   OneTimeOffer: { fromFirstTime?: boolean };
 
   // Chat screens

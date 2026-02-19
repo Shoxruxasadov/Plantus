@@ -24,7 +24,9 @@
       "infoPlist": {
         "NSCameraUsageDescription": "We need camera access to identify and diagnose your plants",
         "NSPhotoLibraryUsageDescription": "We need photo library access to select plant images",
-        "NSLocationWhenInUseUsageDescription": "We need your location to provide local weather information"
+        "NSLocationWhenInUseUsageDescription": "We need your location to provide local weather information",
+        "CFBundleDevelopmentRegion": "en",
+        "CFBundleLocalizations": ["en", "de", "fr", "es", "pt", "ja", "ko", "zh-Hans", "th", "id"]
       }
     },
     "android": {
