@@ -5,6 +5,8 @@
   "main": "expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
+    "start:clear": "expo start --clear",
+    "clear-cache": "rm -rf node_modules/.cache .expo && (watchman watch-del-all 2>/dev/null || true) && echo 'Cache cleared. Keyin: npm run start:clear'",
     "dev": "expo start",
     "dev:ios": "CI=false npx expo run:ios",
     "ios:sim": "CI=false npx expo run:ios --device 'iPhone 15'",

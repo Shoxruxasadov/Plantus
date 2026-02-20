@@ -23,11 +23,9 @@ import { useTranslation } from '../../i18n';
 import { useAppStore } from '../../store/appStore';
 import { updateGardenPlant, getGardenPlantById } from '../../services/supabase';
 import {
-  scheduleNotification,
   requestNotificationPermissions,
-  cancelCareNotificationForPlant,
+  setupGardenNotificationsForUser,
 } from '../../services/notifications';
-import { SchedulableTriggerInputTypes } from 'expo-notifications';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'CarePlanDetail'>;
@@ -66,18 +64,48 @@ function formatRepeatDisplay(repeat: string, customRepeat: any): { type: 'key'; 
   return { type: 'key', key: 'carePlan.notSet' };
 }
 
+const DEFAULT_NOTIFY_TIME = { hours: 9, minutes: 0 };
+
+/** Parse "HH:mm:ss" or "H:mm" string to today's date with that time. */
+function parseTimeStringToDate(str: string): Date {
+  const parts = String(str).trim().split(/[:.]/).map((p) => parseInt(p, 10));
+  const hours = Number.isFinite(parts[0]) ? Math.min(23, Math.max(0, parts[0])) : DEFAULT_NOTIFY_TIME.hours;
+  const minutes = Number.isFinite(parts[1]) ? Math.min(59, Math.max(0, parts[1])) : DEFAULT_NOTIFY_TIME.minutes;
+  const d = new Date();
+  d.setHours(hours, minutes, 0, 0);
+  return d;
+}
+
 function formatTimeDisplay(date: Date): string {
+  if (!date || !Number.isFinite(date.getTime())) {
+    return `${DEFAULT_NOTIFY_TIME.hours}:${String(DEFAULT_NOTIFY_TIME.minutes).padStart(2, '0')} AM`;
+  }
   const h = date.getHours();
   const m = date.getMinutes();
+  if (Number.isNaN(h) || Number.isNaN(m)) {
+    return `${DEFAULT_NOTIFY_TIME.hours}:${String(DEFAULT_NOTIFY_TIME.minutes).padStart(2, '0')} AM`;
+  }
   const ampm = h >= 12 ? 'PM' : 'AM';
   const h12 = h % 12 || 12;
   return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
 }
 
 function parseTime(item: any): Date {
-  const t = item?.Time || item?.time;
-  if (!t) { const d = new Date(); d.setHours(9, 0, 0, 0); return d; }
-  return new Date(t);
+  const t = item?.Time ?? item?.time;
+  if (t == null || t === '') {
+    const d = new Date();
+    d.setHours(DEFAULT_NOTIFY_TIME.hours, DEFAULT_NOTIFY_TIME.minutes, 0, 0);
+    return d;
+  }
+  if (typeof t === 'number' && Number.isFinite(t)) {
+    const d = new Date(t);
+    return Number.isFinite(d.getTime()) ? d : parseTimeStringToDate('09:00:00');
+  }
+  if (typeof t === 'string') {
+    return parseTimeStringToDate(t);
+  }
+  const d = new Date(t);
+  return Number.isFinite(d.getTime()) ? d : parseTimeStringToDate('09:00:00');
 }
 
 function parseRepeat(item: any): { repeat: string; customRepeat: any } {
@@ -267,7 +295,7 @@ export default function CarePlanDetailScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { theme } = useTheme();
-  const { notifications } = useAppStore();
+  const { notifications, userCollection } = useAppStore();
 
   const { plantName, careKey, careLabel, careItem, plantId, isGarden } = route.params;
 
@@ -291,9 +319,20 @@ export default function CarePlanDetailScreen() {
     customRepeat?.type ? customRepeat.type.charAt(0).toUpperCase() + customRepeat.type.slice(1) : 'Week',
   );
 
-  // ---- Notify picker state ----
-  const [pickerHour, setPickerHour] = useState(notifyTime.getHours());
-  const [pickerMinute, setPickerMinute] = useState(notifyTime.getMinutes());
+  // ---- Notify picker state (har doim amal qiladigan qiymat) ----
+  const safeHour = Number.isFinite(notifyTime.getTime()) ? Math.min(23, Math.max(0, notifyTime.getHours())) : DEFAULT_NOTIFY_TIME.hours;
+  const safeMinute = Number.isFinite(notifyTime.getTime()) ? Math.min(59, Math.max(0, notifyTime.getMinutes())) : DEFAULT_NOTIFY_TIME.minutes;
+  const [pickerHour, setPickerHour] = useState(safeHour);
+  const [pickerMinute, setPickerMinute] = useState(safeMinute);
+
+  useEffect(() => {
+    if (notifyVisible) {
+      const h = Number.isFinite(notifyTime.getTime()) ? Math.min(23, Math.max(0, notifyTime.getHours())) : DEFAULT_NOTIFY_TIME.hours;
+      const m = Number.isFinite(notifyTime.getTime()) ? Math.min(59, Math.max(0, notifyTime.getMinutes())) : DEFAULT_NOTIFY_TIME.minutes;
+      setPickerHour(h);
+      setPickerMinute(m);
+    }
+  }, [notifyVisible, notifyTime]);
 
   const handleBack = () => navigation.goBack();
 
@@ -322,51 +361,6 @@ export default function CarePlanDetailScreen() {
     setNotifyVisible(false);
   };
 
-  // ---- Schedule notification (faqat App Settings → Notifications yoqilganda) ----
-  const scheduleCareNotification = async (plantNm: string, key: string, rep: string, cr: any, time: Date, pId: string) => {
-    if (!notifications) return null;
-    const hasPerms = await requestNotificationPermissions();
-    if (!hasPerms) { Alert.alert(t('carePlan.permissionRequired'), t('carePlan.enableNotifications')); return null; }
-    if (rep === 'NotSet') return null;
-
-    const now = new Date();
-    const triggerDate = new Date(now);
-    triggerDate.setHours(time.getHours(), time.getMinutes(), 0, 0);
-
-    if (triggerDate <= now) {
-      if (rep === 'Everyday') triggerDate.setDate(triggerDate.getDate() + 1);
-      else if (rep === 'Everyweek') triggerDate.setDate(triggerDate.getDate() + 7);
-      else if (cr) {
-        const { value, type } = cr;
-        switch (type) {
-          case 'day': triggerDate.setDate(triggerDate.getDate() + value); break;
-          case 'week': triggerDate.setDate(triggerDate.getDate() + value * 7); break;
-          case 'month': triggerDate.setMonth(triggerDate.getMonth() + value); break;
-          case 'year': triggerDate.setFullYear(triggerDate.getFullYear() + value); break;
-        }
-      } else triggerDate.setDate(triggerDate.getDate() + 1);
-    }
-
-    const TITLES: Record<string, string> = {
-      Watering: `💧 Time to water ${plantNm}`, Fertilize: `🌱 Time to fertilize ${plantNm}`,
-      Repotting: `🪴 Time to repot ${plantNm}`, Pruning: `✂️ Time to prune ${plantNm}`,
-      Humidity: `💨 Check humidity for ${plantNm}`, Soilcheck: `🌍 Soil check for ${plantNm}`,
-    };
-    const BODIES: Record<string, string> = {
-      Watering: `Your ${plantNm} needs some water.`, Fertilize: `Give ${plantNm} some nutrients.`,
-      Repotting: `Check if ${plantNm} needs a new pot.`, Pruning: `Time to prune ${plantNm}.`,
-      Humidity: `Check the humidity for ${plantNm}.`, Soilcheck: `Check the soil for ${plantNm}.`,
-    };
-
-    const result = await scheduleNotification(
-      TITLES[key] || `🌿 Care reminder for ${plantNm}`,
-      BODIES[key] || `Check on your ${plantNm}`,
-      { type: SchedulableTriggerInputTypes.DATE, date: triggerDate },
-      { plantId: pId, careKey: key, type: 'careplan' },
-    );
-    return result.success ? result.id : null;
-  };
-
   // ---- Done ----
   const handleDone = async () => {
     if (!plantId || !isGarden) { navigation.goBack(); return; }
@@ -388,11 +382,10 @@ export default function CarePlanDetailScreen() {
 
       await updateGardenPlant(String(plantId), { customcareplan: JSON.stringify(cp) });
 
-      if (notificationEnabled) {
-        const notifId = await scheduleCareNotification(plantName, careKey, repeat, customRepeat, notifyTime, String(plantId));
-        if (notifId) console.log(`[CarePlan] Notification scheduled: ${careKey} -> ${notifId}`);
-      } else {
-        await cancelCareNotificationForPlant(String(plantId), careKey);
+      if (notifications && userCollection?.id) {
+        await requestNotificationPermissions().then((ok) => {
+          if (ok) setupGardenNotificationsForUser(userCollection.id);
+        });
       }
 
       navigation.goBack();
@@ -413,7 +406,7 @@ export default function CarePlanDetailScreen() {
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.backgroundSecondary }]}>
       <View style={[styles.header, { backgroundColor: theme.backgroundSecondary }]}>
         <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-          <ArrowLeft size={24} color={theme.text} />
+          <ArrowLeft size={24} color={theme.text} weight='bold' />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.text }]}>{careLabel}</Text>
         <View style={styles.backBtn} />
@@ -429,8 +422,8 @@ export default function CarePlanDetailScreen() {
           <Switch
             value={notificationEnabled}
             onValueChange={setNotificationEnabled}
-            trackColor={{ false: theme.borderLight, true: COLORS.primary + '99' }}
-            thumbColor={notificationEnabled ? COLORS.primary : theme.textTertiary}
+            trackColor={{ false: theme.borderLight, true: theme.primary }}
+            thumbColor="#FFFFFF"
           />
         </View>
         <TouchableOpacity style={[styles.row, { backgroundColor: theme.card }]} onPress={() => setRemindVisible(true)} activeOpacity={0.7}>

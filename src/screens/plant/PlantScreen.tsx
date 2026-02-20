@@ -484,7 +484,7 @@ export default function PlantScreen() {
         const gardenId = String(result.data.id);
         const cp = safeParse(cpStr);
         if (cp && notifications) {
-          const notifResult = await scheduleCareplanNotificationsForPlant(plant.name ?? 'Plant', gardenId, cp).catch(() => ({ ok: false, error: t('plant.remindersNotSet') }));
+          const notifResult = await scheduleCareplanNotificationsForPlant(plant.name ?? 'Plant', gardenId, cp, userCollection.id).catch(() => ({ ok: false, error: t('plant.remindersNotSet') }));
           if (notifResult && !notifResult.ok) {
             setSnackMessage(notifResult.error ?? t('plant.remindersNotSet'));
             setSnackVisible(true);

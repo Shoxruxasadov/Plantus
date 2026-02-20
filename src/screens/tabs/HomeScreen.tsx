@@ -123,6 +123,10 @@ export default function HomeScreen() {
   };
 
   const handleChat = () => {
+    if (!isPro) {
+      navigation.navigate("Pro", { fromAssistant: true });
+      return;
+    }
     if (!isLoggedIn) {
       navigation.navigate("Started");
       return;

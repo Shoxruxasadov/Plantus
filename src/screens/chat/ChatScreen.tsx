@@ -62,7 +62,7 @@ export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { theme } = useTheme();
-  const { userCollection, darkMode, assistantChatId, setAssistantChatId, setChatCreated } = useAppStore();
+  const { userCollection, darkMode, isPro, assistantChatId, setAssistantChatId, setChatCreated } = useAppStore();
   const flatListRef = useRef<FlatList>(null);
 
   const { chatId: routeChatId, plantImage: routePlantImage, plantContextMessage: routePlantContextMessage } = route.params || {};
@@ -72,6 +72,13 @@ export default function ChatScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Pro bo‘lamasa Chat’ga kirish taqiqlanadi (RevenueCat simulyatorda ishlamasa ham)
+  useEffect(() => {
+    if (!isPro) {
+      navigation.replace('Pro', { fromAssistant: true });
+    }
+  }, [isPro, navigation]);
 
   // ---- Default from Plant screen: 0-index image + short message ----
   useEffect(() => {
@@ -278,6 +285,8 @@ export default function ChatScreen() {
       </View>
     );
   };
+
+  if (!isPro) return null;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>

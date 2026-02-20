@@ -412,7 +412,7 @@ export default function ProScreen() {
                 </Text>
               </View>
               <View style={styles.planRight}>
-                <Text style={[styles.planPriceRight, { color: theme.text }]}>{weeklyPrice}{t('pro.perWeek')}</Text>
+                <Text style={[styles.planPriceRight, { color: theme.text }]}>Free</Text>
               </View>
             </TouchableOpacity>
           </View>

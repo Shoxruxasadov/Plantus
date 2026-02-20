@@ -126,10 +126,16 @@ export default function AssistantScreen() {
           {t('assistant.subtitle')}
         </Text>
 
-        {/* Start Chat Button */}
+        {/* Start Chat Button — Pro bo‘lamasa doim Pro sahifaga */}
         <TouchableOpacity
           style={styles.startButton}
-          onPress={chatCreated && chatId ? () => navigation.navigate('Chat', { chatId }) : handleStartChat}
+          onPress={
+            !isPro
+              ? () => navigation.navigate('Pro', { fromAssistant: true })
+              : chatCreated && chatId
+                ? () => navigation.navigate('Chat', { chatId })
+                : handleStartChat
+          }
           disabled={loading}
         >
           {loading ? (

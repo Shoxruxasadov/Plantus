@@ -120,70 +120,162 @@ function parseCareplan(cp: any): any {
   return cp;
 }
 
-/** Schedule care plan reminders for one garden plant. Call after adding to garden or on login for all plants. */
+/** Parse Time from care item: number (timestamp) yoki "HH:mm:ss" string -> bugungi sana + vaqt. */
+function parseCareTime(t: any): Date {
+  if (t == null || t === '') return new Date(new Date().setHours(9, 0, 0, 0));
+  if (typeof t === 'number' && Number.isFinite(t)) {
+    const d = new Date(t);
+    return Number.isFinite(d.getTime()) ? d : new Date(new Date().setHours(9, 0, 0, 0));
+  }
+  if (typeof t === 'string') {
+    const parts = t.trim().split(/[:.]/).map((p) => parseInt(p, 10));
+    const hours = Number.isFinite(parts[0]) ? Math.min(23, Math.max(0, parts[0])) : 9;
+    const minutes = Number.isFinite(parts[1]) ? Math.min(59, Math.max(0, parts[1])) : 0;
+    const d = new Date();
+    d.setHours(hours, minutes, 0, 0);
+    return d;
+  }
+  const d = new Date(t);
+  return Number.isFinite(d.getTime()) ? d : new Date(new Date().setHours(9, 0, 0, 0));
+}
+
+/** Compute next trigger date from repeat/customRepeat and time. */
+function computeTriggerDate(now: Date, time: Date, rep: string, cr: any): Date {
+  const triggerDate = new Date(now);
+  triggerDate.setHours(time.getHours(), time.getMinutes(), 0, 0);
+  if (triggerDate <= now) {
+    if (rep === 'Everyday') {
+      triggerDate.setDate(triggerDate.getDate() + 1);
+    } else if (rep === 'Everyweek') {
+      triggerDate.setDate(triggerDate.getDate() + 7);
+    } else if (cr) {
+      const { value, type } = cr;
+      const v = value ?? 1;
+      switch (type) {
+        case 'day':
+          triggerDate.setDate(triggerDate.getDate() + v);
+          break;
+        case 'week':
+          triggerDate.setDate(triggerDate.getDate() + v * 7);
+          break;
+        case 'month':
+          triggerDate.setMonth(triggerDate.getMonth() + v);
+          break;
+        case 'year':
+          triggerDate.setFullYear(triggerDate.getFullYear() + v);
+          break;
+        default:
+          triggerDate.setDate(triggerDate.getDate() + 1);
+      }
+    } else {
+      triggerDate.setDate(triggerDate.getDate() + 1);
+    }
+  }
+  const minFuture = now.getTime() + 60 * 1000;
+  if (!Number.isFinite(triggerDate.getTime()) || triggerDate.getTime() < minFuture) {
+    triggerDate.setTime(minFuture);
+  }
+  return triggerDate;
+}
+
+interface CarePlanSlot {
+  plantId: string;
+  plantName: string;
+  careKey: string;
+  repeat: string;
+  customRepeat: any;
+  time: Date;
+}
+
+/** Bir xil vaqt va turdagi (masalan Watering 9:00) reminderlarni bitta guruhga birlashtirib, bitta notification yuboradi. */
+function scheduleGroupedCareplanNotificationsForUser(userId: string): Promise<void> {
+  return (async () => {
+    const hasPerms = await requestNotificationPermissions();
+    if (!hasPerms) return;
+
+    const { data: plants, error } = await getGardenPlants(userId);
+    if (error || !plants?.length) return;
+
+    const slots: CarePlanSlot[] = [];
+    for (const plant of plants) {
+      const id = plant.id;
+      const name = plant.name ?? 'Plant';
+      const cp = parseCareplan(plant.careplan ?? plant.customcareplan);
+      if (!id || !cp) continue;
+
+      for (const key of CARE_PLAN_KEYS) {
+        const item = cp[key] || cp[key.charAt(0).toLowerCase() + key.slice(1)];
+        if (!item) continue;
+        if (item.NotificationEnabled === false || item.notificationEnabled === false) continue;
+        const rep = item.Repeat || item.repeat;
+        if (!rep || rep === 'NotSet') continue;
+        const cr = item.CustomRepeat || item.customRepeat;
+        const t = item.Time || item.time;
+        const time = parseCareTime(t);
+        slots.push({ plantId: id, plantName: name, careKey: key, repeat: rep, customRepeat: cr, time });
+      }
+    }
+
+    const groupKey = (s: CarePlanSlot) =>
+      `${s.careKey}_${s.time.getHours()}_${s.time.getMinutes()}_${s.repeat}_${JSON.stringify(s.customRepeat ?? '')}`;
+    const groups = new Map<string, CarePlanSlot[]>();
+    for (const s of slots) {
+      const k = groupKey(s);
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k)!.push(s);
+    }
+
+    const now = new Date();
+    for (const [, groupSlots] of groups) {
+      if (groupSlots.length === 0) continue;
+      const first = groupSlots[0];
+      const triggerDate = computeTriggerDate(now, first.time, first.repeat, first.customRepeat);
+      const careTitle = CARE_PLAN_TITLES[first.careKey] || '🌿 Care reminder';
+      const plantNames = groupSlots.map((s) => s.plantName).join(', ');
+      const title = `${careTitle}: ${plantNames}`;
+      const body = (CARE_PLAN_BODIES[first.careKey] || 'Check on your plants.').replace(/\bplant\b/gi, 'plants');
+      const plantIds = groupSlots.map((s) => s.plantId);
+      try {
+        await scheduleNotification(
+          title,
+          body,
+          { type: SchedulableTriggerInputTypes.DATE, date: triggerDate },
+          { type: 'careplan', careKey: first.careKey, plantIds, groupKey: groupKey(first) }
+        );
+      } catch (e) {
+        console.warn('[Notifications] Grouped schedule failed:', first.careKey, e);
+      }
+    }
+  })();
+}
+
+/** Schedule care plan reminders for one garden plant. Reschedules all grouped so the new plant is included. */
 export const scheduleCareplanNotificationsForPlant = async (
   plantName: string,
   gardenId: string,
-  careplan: any
+  careplan: any,
+  userId?: string
 ): Promise<{ ok: boolean; error?: string }> => {
+  if (userId) {
+    await scheduleGroupedCareplanNotificationsForUser(userId);
+    return { ok: true };
+  }
   const hasPerms = await requestNotificationPermissions();
   if (!hasPerms) return { ok: false, error: 'Permission denied' };
-
   const cp = parseCareplan(careplan);
   if (!cp) return { ok: true };
-
   let hasError = false;
   for (const key of CARE_PLAN_KEYS) {
     const item = cp[key] || cp[key.charAt(0).toLowerCase() + key.slice(1)];
     if (!item) continue;
     if (item.NotificationEnabled === false || item.notificationEnabled === false) continue;
-
     const rep = item.Repeat || item.repeat;
     if (!rep || rep === 'NotSet') continue;
-
     const cr = item.CustomRepeat || item.customRepeat;
     const t = item.Time || item.time;
-    const timeParsed = t ? new Date(t) : new Date();
-    const time = Number.isFinite(timeParsed.getTime()) ? timeParsed : new Date();
-
+    const time = parseCareTime(t);
     const now = new Date();
-    const triggerDate = new Date(now);
-    triggerDate.setHours(time.getHours(), time.getMinutes(), 0, 0);
-
-    if (triggerDate <= now) {
-      if (rep === 'Everyday') {
-        triggerDate.setDate(triggerDate.getDate() + 1);
-      } else if (rep === 'Everyweek') {
-        triggerDate.setDate(triggerDate.getDate() + 7);
-      } else if (cr) {
-        const { value, type } = cr;
-        const v = value ?? 1;
-        switch (type) {
-          case 'day':
-            triggerDate.setDate(triggerDate.getDate() + v);
-            break;
-          case 'week':
-            triggerDate.setDate(triggerDate.getDate() + v * 7);
-            break;
-          case 'month':
-            triggerDate.setMonth(triggerDate.getMonth() + v);
-            break;
-          case 'year':
-            triggerDate.setFullYear(triggerDate.getFullYear() + v);
-            break;
-          default:
-            triggerDate.setDate(triggerDate.getDate() + 1);
-        }
-      } else {
-        triggerDate.setDate(triggerDate.getDate() + 1);
-      }
-    }
-
-    const minFuture = now.getTime() + 60 * 1000;
-    if (!Number.isFinite(triggerDate.getTime()) || triggerDate.getTime() < minFuture) {
-      triggerDate.setTime(minFuture);
-    }
-
+    const triggerDate = computeTriggerDate(now, time, rep, cr);
     const title = `${CARE_PLAN_TITLES[key] || '🌿 Care reminder'} ${plantName}`;
     const body = (CARE_PLAN_BODIES[key] || `Check on your ${plantName}`).replace(/\bplant\b/gi, plantName);
     try {
@@ -193,9 +285,7 @@ export const scheduleCareplanNotificationsForPlant = async (
         { type: SchedulableTriggerInputTypes.DATE, date: triggerDate },
         { plantId: gardenId, careKey: key, type: 'careplan' }
       );
-      if (!res.success) {
-        hasError = true;
-      }
+      if (!res.success) hasError = true;
     } catch (e) {
       console.error('[Notifications] Care plan schedule failed:', key, e);
       hasError = true;
@@ -225,7 +315,7 @@ export const cancelCareNotificationForPlant = async (
   }
 };
 
-/** Setup notifications for all garden plants (e.g. on login). Runs in background. */
+/** Setup notifications for all garden plants (e.g. on login). Bir xil vaqt va turdagi reminderlar bitta notificationda birlashtiriladi. */
 export const setupGardenNotificationsForUser = async (userId: string): Promise<void> => {
   const hasPerms = await requestNotificationPermissions();
   if (!hasPerms) return;
@@ -239,21 +329,7 @@ export const setupGardenNotificationsForUser = async (userId: string): Promise<v
     }
   }
 
-  const { data: plants, error } = await getGardenPlants(userId);
-  if (error || !plants?.length) return;
-
-  for (const plant of plants) {
-    const name = plant.name ?? 'Plant';
-    const id = plant.id;
-    const cp = plant.careplan ?? plant.customcareplan;
-    if (id && cp) {
-      try {
-        await scheduleCareplanNotificationsForPlant(name, id, cp);
-      } catch (e) {
-        console.warn('[Notifications] Setup failed for plant:', id, e);
-      }
-    }
-  }
+  await scheduleGroupedCareplanNotificationsForUser(userId);
 };
 
 // Setup plant care reminders

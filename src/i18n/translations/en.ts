@@ -2,7 +2,7 @@ export const en: Record<string, string> = {
   // Nav
   'nav.home': 'Home',
   'nav.myGarden': 'My Garden',
-  'nav.assistant': 'Assistant',
+  'nav.assistant': 'AI Botanist',
   'nav.profile': 'Profile',
 
   // Onboarding
@@ -193,7 +193,7 @@ export const en: Record<string, string> = {
   'garden.errorUpdateTask': 'Failed to update task',
 
   // Assistant
-  'assistant.title': 'Assistant',
+  'assistant.title': 'AI Botanist',
   'assistant.badge': 'Plant Expert',
   'assistant.section': 'Chat with Mr. Oliver',
   'assistant.subtitle': 'Get expert plant advice tailored to your plant.',
@@ -489,9 +489,9 @@ export const en: Record<string, string> = {
   'pro.save88': 'SAVE 88%',
   'pro.perYear': '/year',
   'pro.perWeek': '/week',
-  'pro.threeDayTrial': '3 days free, then just',
+  'pro.threeDayTrial': '3 days free, then $4.99/week',
   'pro.trusted': 'TRUSTED',
-  'pro.trustedByUsers': 'by Plant Flowers',
+  'pro.trustedByUsers': 'by Plant Lovers',
 
   // OneTimeOffer
   'oneTime.title': 'ONE TIME OFFER',

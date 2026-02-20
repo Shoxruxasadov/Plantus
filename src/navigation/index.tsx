@@ -227,7 +227,7 @@ const TabNavigator = () => {
         component={HomeScreen}
         options={{ tabBarLabel: t('nav.home') }}
         listeners={() => ({
-          tabPress: () => triggerHaptic(vibration),
+          tabPress: () => { triggerHaptic(vibration); },
         })}
       />
       <Tab.Screen
@@ -235,7 +235,7 @@ const TabNavigator = () => {
         component={MyGardenScreen}
         options={{ tabBarLabel: t('nav.myGarden') }}
         listeners={() => ({
-          tabPress: () => triggerHaptic(vibration),
+          tabPress: () => { triggerHaptic(vibration); },
         })}
       />
       <Tab.Screen
@@ -260,7 +260,10 @@ const TabNavigator = () => {
         component={AssistantScreen}
         options={{ tabBarLabel: t('nav.assistant') }}
         listeners={({ navigation }) => ({
-          tabPress: (e) => handleAssistantTabPress(e, navigation),
+          tabPress: (e) => {
+            triggerHaptic(vibration);
+            handleAssistantTabPress(e, navigation);
+          },
         })}
       />
       <Tab.Screen
@@ -268,7 +271,7 @@ const TabNavigator = () => {
         component={ProfileScreen}
         options={{ tabBarLabel: t('nav.profile') }}
         listeners={() => ({
-          tabPress: () => triggerHaptic(vibration),
+          tabPress: () => { triggerHaptic(vibration); },
         })}
       />
     </Tab.Navigator>
