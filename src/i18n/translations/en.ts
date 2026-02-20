@@ -132,6 +132,7 @@ export const en: Record<string, string> = {
   'home.setPlan': 'Set plan',
   'home.lightMeter': 'Light Meter',
   'home.checkLight': 'Check light',
+  'home.comingSoon': 'Coming soon',
   'home.sectionArticles': 'Articles for you',
   'home.pro': 'PRO',
 

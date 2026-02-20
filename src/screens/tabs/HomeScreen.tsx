@@ -13,6 +13,7 @@ import {
   FlatList,
   Dimensions,
   Platform,
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -343,12 +344,13 @@ export default function HomeScreen() {
               {t('home.setPlan')}
             </Text>
           </TouchableOpacity>
+          {/* Light Meter: hozir Coming soon dialog; keyinroq yoqish uchun onPress ni navigation.navigate("LightMeter" as never) qiling */}
           <TouchableOpacity
             style={[
               styles.extraToolCard,
               { backgroundColor: theme.background },
             ]}
-            onPress={() => navigation.navigate("LightMeter" as never)}
+            onPress={() => Alert.alert(t('home.comingSoon'), '', [{ text: t('common.ok') }])}
             activeOpacity={0.9}
           >
             <View

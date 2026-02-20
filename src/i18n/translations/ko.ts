@@ -95,6 +95,7 @@ export const ko: Record<string, string> = {
   'home.setPlan': '계획 설정',
   'home.lightMeter': '조도계',
   'home.checkLight': '빛 확인',
+  'home.comingSoon': '곧 출시',
   'home.sectionArticles': '추천 글',
   'home.pro': 'PRO',
   'garden.tabGarden': '내 정원',

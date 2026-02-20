@@ -95,6 +95,7 @@ export const ja: Record<string, string> = {
   'home.setPlan': 'プランを設定',
   'home.lightMeter': '照度計',
   'home.checkLight': '光をチェック',
+  'home.comingSoon': '近日公開',
   'home.sectionArticles': 'おすすめ記事',
   'home.pro': 'PRO',
   'garden.tabGarden': 'マイガーデン',

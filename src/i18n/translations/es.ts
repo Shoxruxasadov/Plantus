@@ -95,6 +95,7 @@ export const es: Record<string, string> = {
   'home.setPlan': 'Establecer plan',
   'home.lightMeter': 'Medidor de luz',
   'home.checkLight': 'Comprobar luz',
+  'home.comingSoon': 'Próximamente',
   'home.sectionArticles': 'Artículos para ti',
   'home.pro': 'PRO',
   'garden.tabGarden': 'Mi Jardín',

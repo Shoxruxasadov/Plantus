@@ -95,6 +95,7 @@ export const th: Record<string, string> = {
   'home.setPlan': 'ตั้งแผน',
   'home.lightMeter': 'เครื่องวัดแสง',
   'home.checkLight': 'ตรวจแสง',
+  'home.comingSoon': 'เร็วๆ นี้',
   'home.sectionArticles': 'บทความสำหรับคุณ',
   'home.pro': 'PRO',
   'garden.tabGarden': 'สวนของฉัน',

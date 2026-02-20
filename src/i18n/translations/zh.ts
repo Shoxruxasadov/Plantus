@@ -95,6 +95,7 @@ export const zh: Record<string, string> = {
   'home.setPlan': '设置计划',
   'home.lightMeter': '测光表',
   'home.checkLight': '检查光照',
+  'home.comingSoon': '即将推出',
   'home.sectionArticles': '推荐文章',
   'home.pro': 'PRO',
   'garden.tabGarden': '我的花园',

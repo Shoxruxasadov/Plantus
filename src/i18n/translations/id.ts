@@ -95,6 +95,7 @@ export const id: Record<string, string> = {
   'home.setPlan': 'Atur rencana',
   'home.lightMeter': 'Pengukur Cahaya',
   'home.checkLight': 'Cek cahaya',
+  'home.comingSoon': 'Segera hadir',
   'home.sectionArticles': 'Artikel untuk Anda',
   'home.pro': 'PRO',
   'garden.tabGarden': 'Taman Saya',
