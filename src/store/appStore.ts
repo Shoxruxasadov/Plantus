@@ -444,7 +444,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         darkMode: darkMode ? JSON.parse(darkMode) : false,
         weather: weather ? JSON.parse(weather) : defaultWeather,
         city: city ?? '',
-        remainingScans: remainingScans != null && !Number.isNaN(parseInt(remainingScans, 10)) ? parseInt(remainingScans, 10) : 5,
+        remainingScans: (() => {
+          const parsed = remainingScans != null && !Number.isNaN(parseInt(remainingScans, 10)) ? parseInt(remainingScans, 10) : 1;
+          return Math.min(parsed, 1);
+        })(),
       });
 
       // Til: avval expo-localization (per-app), bo‘lmasa qurilma tili (Settings → General → Language).

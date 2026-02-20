@@ -290,7 +290,7 @@ export default function ProScreen() {
                 cx={CIRCLE_SIZE / 2}
                 cy={CIRCLE_SIZE / 2}
                 r={CIRCLE_R}
-                stroke={theme.primary}
+                stroke={theme.textSecondary}
                 strokeWidth={3}
                 fill="none"
                 strokeDasharray={circumference}
@@ -306,7 +306,7 @@ export default function ProScreen() {
         )}
       </View>
 
-      <View style={[styles.content, { paddingBottom: insets.bottom + 24 }]}>
+      <View style={[styles.content, { paddingBottom: insets.bottom + 12 }]}>
         {/* Hero: plant photo under status bar (transparent app bar) + Trust image */}
         <View style={[styles.heroWrap, { height: HERO_HEIGHT + insets.top }]}>
           <Image
@@ -416,6 +416,22 @@ export default function ProScreen() {
               </View>
             </TouchableOpacity>
           </View>
+          )}
+        </View>
+
+        {/* Disclaimer: Access for price (yearly) or No payments due (weekly) */}
+        <View style={styles.ctaDisclaimerWrap}>
+          {isYearlySelected ? (
+            <Text style={[styles.ctaDisclaimerText, { color: theme.text }]}>
+              {t('pro.accessForYear', { price: yearlyPrice })}
+            </Text>
+          ) : (
+            <View style={styles.ctaDisclaimerRow}>
+              <View style={styles.ctaDisclaimerIconWrap}>
+                <Check size={14} color={theme.text} weight="bold" />
+              </View>
+              <Text style={[styles.ctaDisclaimerText, { color: theme.text }]}>{t('pro.noPaymentsDueNow')}</Text>
+            </View>
           )}
         </View>
 
@@ -541,7 +557,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   trustTextOverlay: {
-    paddingTop: 16,
+    paddingTop: "5%",
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 2,
@@ -577,12 +593,12 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     textAlign: 'center',
     marginTop: SPACING.md,
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.md,
   },
   featuresWrap: {
     gap: SPACING.sm,
     flexShrink: 0,
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.xs,
   },
   featureRow: {
     flexDirection: 'row',
@@ -606,7 +622,7 @@ const styles = StyleSheet.create({
   plansWrap: {
     gap: SPACING.md,
     flexShrink: 0,
-    marginTop: SPACING.lg,
+    marginTop: SPACING.md,
   },
   yearlyPlanWrap: {
     gap: 0,
@@ -618,13 +634,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 4,
     paddingTop: 6,
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
     gap: SPACING.sm,
   },
   planBannerText: {
     flex: 1,
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: 500,
     color: COLORS.textLight,
   },
   planBannerSaveBadge: {
@@ -724,9 +740,28 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
   },
+  ctaDisclaimerWrap: {
+    marginHorizontal: SPACING.xl,
+    marginBottom: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaDisclaimerText: {
+    fontSize: 14,
+    fontWeight: 600,
+    textAlign: 'center',
+  },
+  ctaDisclaimerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaDisclaimerIconWrap: {
+    marginRight: 6,
+  },
   ctaBtnWrap: {
     marginHorizontal: SPACING.xl,
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.xs,
     flexShrink: 0,
     borderRadius: 16,
     overflow: 'hidden',
