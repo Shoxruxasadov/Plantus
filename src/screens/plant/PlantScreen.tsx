@@ -13,7 +13,10 @@ import {
   Animated,
   PanResponder,
   ActivityIndicator,
+  Linking,
+  Platform,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,6 +38,11 @@ const { width, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const IMAGE_HEIGHT = 300;
 const COLLAPSED_Y = IMAGE_HEIGHT - 20;
 const EXPANDED_Y = 0;
+
+const REVIEW_PROMPT_LAST_SHOWN_KEY = '@plantus_review_prompt_last_shown';
+const REVIEW_PROMPT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const APP_STORE_REVIEW_URL_IOS = 'https://apps.apple.com/app/id6759219129?action=write-review';
+const PLAY_STORE_REVIEW_URL_ANDROID = 'https://play.google.com/store/apps/details?id=com.webnum.plantus';
 
 // ---- JSON helpers ----
 function safeParse(val: any) {
@@ -347,7 +355,40 @@ export default function PlantScreen() {
     }
   }, []);
 
-  const handleClose = () => navigation.goBack();
+  const tryShowReviewDialog = useCallback((onDismiss: () => void) => {
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(REVIEW_PROMPT_LAST_SHOWN_KEY);
+        const lastShown = raw ? parseInt(raw, 10) : 0;
+        const now = Date.now();
+        if (now - lastShown < REVIEW_PROMPT_COOLDOWN_MS && lastShown > 0) {
+          onDismiss();
+          return;
+        }
+        Alert.alert(
+          t('plant.reviewTitle'),
+          t('plant.reviewMessage'),
+          [
+            { text: t('plant.reviewCancel'), style: 'cancel', onPress: onDismiss },
+            {
+              text: t('plant.reviewSubmit'),
+              onPress: () => {
+                const url = Platform.OS === 'ios' ? APP_STORE_REVIEW_URL_IOS : PLAY_STORE_REVIEW_URL_ANDROID;
+                Linking.openURL(url).catch(() => {});
+                AsyncStorage.setItem(REVIEW_PROMPT_LAST_SHOWN_KEY, String(Date.now()));
+                onDismiss();
+              },
+            },
+          ]
+        );
+        await AsyncStorage.setItem(REVIEW_PROMPT_LAST_SHOWN_KEY, String(now));
+      } catch {
+        onDismiss();
+      }
+    })();
+  }, [t]);
+
+  const handleClose = () => tryShowReviewDialog(() => navigation.goBack());
 
   // Tab press — expand first if collapsed; disable scroll-based tab sync until scroll ends
   const handleTabPress = (tab: string) => {
@@ -492,13 +533,15 @@ export default function PlantScreen() {
   };
 
   const handleSeeGarden = () => {
-    if (gardenPlant) {
-      // Already on Plant screen — just swap data instantly
-      setPlant(gardenPlant);
-      navigation.setParams({ plantId: gardenPlant.id, isGarden: true, snap: gardenPlant });
-    } else {
-      navigation.navigate('MyGarden');
-    }
+    const doNavigate = () => {
+      if (gardenPlant) {
+        setPlant(gardenPlant);
+        navigation.setParams({ plantId: gardenPlant.id, isGarden: true, snap: gardenPlant });
+      } else {
+        navigation.navigate('MyGarden');
+      }
+    };
+    tryShowReviewDialog(doNavigate);
   };
 
   if (loading) {
