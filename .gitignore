@@ -42,3 +42,6 @@ coverage/
 # Temporary files
 *.log
 *.tmp
+
+# EAS credentials
+credentials.json
