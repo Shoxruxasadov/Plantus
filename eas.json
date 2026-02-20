@@ -20,7 +20,8 @@
         "buildType": "apk"
       },
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "credentialsSource": "local"
       },
       "channel": "preview"
     },
@@ -30,7 +31,8 @@
       },
       "ios": {
         "simulator": false,
-        "buildConfiguration": "Release"
+        "buildConfiguration": "Release",
+        "credentialsSource": "local"
       },
       "channel": "production"
     }
