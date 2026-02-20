@@ -280,7 +280,7 @@ export const getGroupPlants = async (groupId: string, userId?: string) => {
     const { data, error } = await q;
     if (!error && data && data.length > 0) {
       const orderMap = new Map(plantIds.map((id, i) => [Number(id), i]));
-      data.sort((a: any, b: any) => (orderMap.get(Number(a.id)) ?? 99) - (orderMap.get(Number(b.id)) ?? 99));
+      data.sort((a: any, b: any) => (orderMap.get(Number(b.id)) ?? -1) - (orderMap.get(Number(a.id)) ?? -1));
       return { data, error };
     }
   }

@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     zIndex: 100,
     left: '4%',
-    top:"13%",
+    top: "15%",
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

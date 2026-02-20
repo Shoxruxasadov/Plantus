@@ -29,7 +29,9 @@ import { useTranslation } from '../../i18n';
 
 const MIN_LUX = 0;
 const MAX_LUX = 100000;
-const CAMERA_SAMPLE_INTERVAL_MS = 100;
+const CAMERA_SAMPLE_INTERVAL_MS = 350;
+/** Kadr o'zgarmasa lux o'zgarmasin: shu farqdan kam bo'lsa eski qiymat saqlanadi */
+const LUX_STABLE_THRESHOLD = 90;
 
 const LIGHT_LEVEL_KEYS: { min: number; levelKey: string; descKey: string; color: string; icon: string }[] = [
   { min: 0, levelKey: 'lightMeter.veryDark', descKey: 'lightMeter.veryDarkDesc', color: '#1A1A2E', icon: 'moon' },
@@ -49,25 +51,35 @@ function getLevelForLux(lux: number) {
   return out;
 }
 
-function hexToLuminance(hex: string): number {
+/** Hex → HSL. Returns h [0-360], s [0-100], l [0-100]. */
+function hexToHSL(hex: string): { h: number; s: number; l: number } {
   const h = hex.replace('#', '');
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  return 0.299 * r + 0.587 * g + 0.114 * b;
+  let r = parseInt(h.slice(0, 2), 16) / 255;
+  let g = parseInt(h.slice(2, 4), 16) / 255;
+  let b = parseInt(h.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let l = (max + min) / 2;
+  let s = 0;
+  let hVal = 0;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r) hVal = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+    else if (max === g) hVal = ((b - r) / d + 2) / 6;
+    else hVal = ((r - g) / d + 4) / 6;
+  }
+  return { h: hVal * 360, s: s * 100, l: l * 100 };
 }
 
-// iOS: camera → dominant color → luminance → lux (estimate).
-// Calibration: dark → 0, room ~400–500, outdoor bright 5k–10k (avoid 35k–99k for indoor).
-function luminanceToLux(luminance: number): number {
-  const normalized = Math.max(0, Math.min(255, luminance)) / 255;
-  const gammaCorrected = Math.pow(normalized, 1.6);
-  let raw = gammaCorrected * MAX_LUX;
-  // Scale down so indoor (high raw from camera) lands ~400–500, outdoor 5k–10k
-  if (raw < 500) raw = raw;
-  else if (raw < 40000) raw *= 0.012;  // ~35k → ~420 (room)
-  else raw *= 0.1;                       // 50k→5k, 100k→10k (outdoor)
-  return Math.round(Math.max(MIN_LUX, Math.min(MAX_LUX, raw)));
+/**
+ * Lightness (HSL L, 0–100) → lux estimate.
+ * L=0 → 0; indoor ~300–700 (L ~11–17); outdoor 1000–6000 (L ~20–50); direct sun 25k+ (L high).
+ */
+function lightnessToLux(L: number): number {
+  const clamped = Math.max(0, Math.min(100, L));
+  const lux = 2.5 * (clamped * clamped);
+  return Math.round(Math.max(MIN_LUX, Math.min(MAX_LUX, lux)));
 }
 
 export default function LightMeterScreen() {
@@ -164,32 +176,27 @@ export default function LightMeterScreen() {
         : (colors as { primary?: string }).primary ?? (colors as { background?: string }).background;
       let newLux: number;
       if (hex) {
-        const lum = hexToLuminance(hex);
-        // Qorong'u / qopqoq kamerada past lux — luminance juda past bo'lsa 0 deb hisobla
-        if (lum < 25) {
+        const { l: lightness } = hexToHSL(hex);
+        if (lightness <= 0) {
           newLux = 0;
         } else {
-          newLux = luminanceToLux(lum);
+          newLux = lightnessToLux(lightness);
         }
       } else {
-        newLux = 0;  // rang yo'q (kamera qopqoq) → 0
+        newLux = 0;
       }
       setLux((prev) => {
         const diff = Math.abs(newLux - prev);
-        // Kamera qimirlamaganda: kichik farq bo'lsa bir xil qiymatni ushlab turish (barqaror)
-        const stable = diff < 120;
-        let blendPrev: number, blendNew: number;
-        if (stable) {
-          blendPrev = 0.92;
-          blendNew = 0.08;
-        } else if (newLux < 80) {
-          blendPrev = 0.2;
-          blendNew = 0.8;
-        } else {
-          blendPrev = 0.6;
-          blendNew = 0.4;
+        if (diff < LUX_STABLE_THRESHOLD) return prev;
+        if (diff < 200) {
+          const blended = Math.round(prev * 0.92 + newLux * 0.08);
+          return Math.max(MIN_LUX, Math.min(MAX_LUX, blended));
         }
-        const blended = Math.round(prev * blendPrev + newLux * blendNew);
+        if (diff < 500) {
+          const blended = Math.round(prev * 0.75 + newLux * 0.25);
+          return Math.max(MIN_LUX, Math.min(MAX_LUX, blended));
+        }
+        const blended = Math.round(prev * 0.5 + newLux * 0.5);
         return Math.max(MIN_LUX, Math.min(MAX_LUX, blended));
       });
     } catch (e: any) {
