@@ -10,7 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp, StackActions } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'phosphor-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -67,23 +67,14 @@ export default function OneTimeOfferScreen() {
     return () => { cancelled = true; };
   }, []);
 
-  const performClose = () => {
+  const handleClose = () => {
     if (fromFirstTime) {
       navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+    } else if (navigation.canGoBack()) {
+      navigation.goBack();
     } else {
-      navigation.dispatch(StackActions.pop(2));
+      navigation.navigate('MainTabs');
     }
-  };
-
-  const handleClose = () => {
-    Alert.alert(
-      t('oneTime.opportunity'),
-      t('oneTime.opportunityMessage'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        { text: t('oneTime.dontNeed'), onPress: performClose },
-      ]
-    );
   };
 
   const findAnnualDiscountPackage = (packages: PurchasesPackage[]): PurchasesPackage | null => {

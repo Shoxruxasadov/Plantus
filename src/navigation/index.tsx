@@ -386,14 +386,15 @@ export default function Navigation() {
         <Stack.Screen name="Fertilizing" component={FertilizingScreen} />
         <Stack.Screen name="Repotting" component={RepottingScreen} />
 
-        {/* Subscription — full-screen modal, slide from bottom, 250ms */}
+        {/* Subscription — full-screen modal, slide from bottom (oldinga ochilish) */}
         <Stack.Screen
           name="Pro"
           component={ProScreen}
           options={{
             presentation: 'fullScreenModal',
             animation: 'slide_from_bottom',
-            animationDuration: 200,
+            animationDuration: 280,
+            gestureDirection: 'vertical',
           }}
         />
         <Stack.Screen

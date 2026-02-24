@@ -200,7 +200,7 @@ export default function ScannerScreen() {
         t('scanner.alertNoScansMessage'),
         [
           { text: t('scanner.alertCancel'), style: 'cancel' },
-          { text: t('scanner.getMore'), onPress: () => navigation.navigate('Pro', { fromScanner: true }) },
+          { text: t('scanner.getMore'), onPress: () => navigation.navigate(remainingScans === 0 ? 'OneTimeOffer' : 'Pro', remainingScans === 0 ? { fromFirstTime: false } : { fromScanner: true }) },
         ]
       );
       return;
@@ -250,7 +250,7 @@ export default function ScannerScreen() {
         t('scanner.alertNoScansMessage'),
         [
           { text: t('scanner.alertCancel'), style: 'cancel' },
-          { text: t('scanner.getMore'), onPress: () => navigation.navigate('Pro', { fromScanner: true }) },
+          { text: t('scanner.getMore'), onPress: () => navigation.navigate(remainingScans === 0 ? 'OneTimeOffer' : 'Pro', remainingScans === 0 ? { fromFirstTime: false } : { fromScanner: true }) },
         ]
       );
       return;
@@ -421,7 +421,7 @@ export default function ScannerScreen() {
           </Text>
           <TouchableOpacity
             style={styles.scansBarButton}
-            onPress={() => navigation.navigate('Pro', { fromScanner: true })}
+            onPress={() => navigation.navigate(remainingScans === 0 ? 'OneTimeOffer' : 'Pro', remainingScans === 0 ? { fromFirstTime: false } : { fromScanner: true })}
             activeOpacity={0.8}
           >
             <Text style={styles.scansBarButtonText}>{t('scanner.getMore')}</Text>

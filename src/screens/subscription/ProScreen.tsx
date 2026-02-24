@@ -11,7 +11,7 @@ import {
   Image,
   Animated,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { RootStackParamList } from '../../types';
@@ -183,32 +183,22 @@ export default function ProScreen() {
     }
   };
 
-  const handleClose = async () => {
-    if (isPro) {
+  const handleClose = () => {
+    // Started → Pro (birinchi marta): Home bilan replace, Homeda orqaga qaytish yo‘q
+    if (route.params?.isFirstStep === true) {
+      navigation.dispatch(
+        CommonActions.reset({ index: 0, routes: [{ name: 'MainTabs' }] })
+      );
+      return;
+    }
+    // Profile/Home/... → Pro: oddiy orqaga (goBack), MainTabs ga navigate qilmaymiz
+    if (navigation.canGoBack()) {
       navigation.goBack();
-      return;
+    } else {
+      navigation.dispatch(
+        CommonActions.reset({ index: 0, routes: [{ name: 'MainTabs' }] })
+      );
     }
-    const shouldOfferOneTime = isFirstStep || fromScanner;
-    if (shouldOfferOneTime) {
-      try {
-        const lastShown = await AsyncStorage.getItem(ONE_TIME_OFFER_LAST_SHOWN_KEY);
-        if (!shouldShowOneTimeOfferToday(lastShown)) {
-          if (isFirstStep) {
-            navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
-          } else {
-            navigation.goBack();
-          }
-          return;
-        }
-        const today = getTodayDateString();
-        await AsyncStorage.setItem(ONE_TIME_OFFER_LAST_SHOWN_KEY, today);
-        navigation.navigate('OneTimeOffer', { fromFirstTime: isFirstStep });
-      } catch {
-        navigation.goBack();
-      }
-      return;
-    }
-    navigation.goBack();
   };
 
   if (isPro) {
