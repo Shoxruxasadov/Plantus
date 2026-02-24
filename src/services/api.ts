@@ -228,10 +228,12 @@ export const fetchLocation = async (lat: number, lon: number) => {
 };
 
 // ✅ GEMINI API - Plant Identification (matches Flutter implementation exactly)
+/** Locale for AI output (e.g. en, de, fr). Scanner uses app language. */
 export const identifyPlant = async (
   imagesBase64: string | string[],
   mode: ScannerMode = 'identify',
-  onError?: (error: string) => void
+  onError?: (error: string) => void,
+  locale: string = 'en'
 ): Promise<{ success: boolean; data?: PlantInformation; error?: any }> => {
   try {
     // Convert single image to array
@@ -481,6 +483,8 @@ IMPORTANT RULES FOR mainDescription:
 - Use concise measurements: cm, %, °C, °F, hrs
 - Use bullet separator: •
 
+OUTPUT LANGUAGE: Write ALL text fields (name, description, labels, overview, careplan, disease titles/descriptions/fix) in the language with code "${locale}". Use that language for every user-facing string (e.g. en=English, de=German, fr=French, es=Spanish, pt=Portuguese, ja=Japanese, ko=Korean, zh=Chinese, th=Thai, id=Indonesian).
+
 CRITICAL: Provide EXACTLY 4 disease items with realistic, actionable information.`,
       },
     ];
@@ -658,13 +662,15 @@ export const sendChatMessage = async (
     // Build conversation history
     const conversationParts: any[] = [];
 
-    // Add system context
+    // Add system context — Chat: respond in the same language as the user's message
     conversationParts.push({
       text: `You are Mr. Oliver, an expert AI botanist assistant. 
 You help users with plant care, identification, disease diagnosis, and gardening advice.
 Be friendly, helpful, and provide accurate botanical information.
 If the user shares an image, analyze it and provide relevant plant advice.
-Keep responses concise but informative.`,
+Keep responses concise but informative.
+
+IMPORTANT: Always respond in the SAME language as the user's last message. If the user writes in Uzbek, respond in Uzbek; in English, respond in English; in Russian, respond in Russian; etc. Do not translate or switch language—match the user's language.`,
     });
 
     // Add previous messages as context

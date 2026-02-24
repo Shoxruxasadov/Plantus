@@ -57,7 +57,7 @@ export default function ScannerScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { userCollection, vibration, isPro, remainingScans, decrementRemainingScans, darkMode } = useAppStore();
   const theme = DARK_COLORS; // Scanner faqat dark mode
 
@@ -300,10 +300,10 @@ export default function ScannerScreen() {
         base64OrArray,
         mode as ScannerMode,
         (errorMessage: string) => {
-          // Show "no plant found" error state
           setScanError(true);
           setLoading(false);
-        }
+        },
+        locale
       );
 
       if (!result.success || !result.data) {
