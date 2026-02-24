@@ -21,7 +21,7 @@
       },
       "ios": {
         "simulator": false,
-        "credentialsSource": "local"
+        "credentialsSource": "remote"
       },
       "channel": "preview"
     },
@@ -32,7 +32,7 @@
       "ios": {
         "simulator": false,
         "buildConfiguration": "Release",
-        "credentialsSource": "local"
+        "credentialsSource": "remote"
       },
       "channel": "production"
     }
