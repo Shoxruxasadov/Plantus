@@ -382,10 +382,12 @@ export default function CarePlanDetailScreen() {
 
       await updateGardenPlant(String(plantId), { customcareplan: JSON.stringify(cp) });
 
+      // Care plan o‘zgargani uchun barcha bog‘ reminderlarini qayta rejalashtirish (notification yangilash)
       if (notifications && userCollection?.id) {
-        await requestNotificationPermissions().then((ok) => {
-          if (ok) setupGardenNotificationsForUser(userCollection.id);
-        });
+        const hasPermission = await requestNotificationPermissions();
+        if (hasPermission) {
+          await setupGardenNotificationsForUser(userCollection.id);
+        }
       }
 
       navigation.goBack();

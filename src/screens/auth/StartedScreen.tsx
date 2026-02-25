@@ -89,8 +89,9 @@ export default function StartedScreen() {
           );
           setUser(data.user);
           setSession(data.session);
-          if (notifications)
-            setupGardenNotificationsForUser(data.user.id).catch(() => {});
+          if (notifications) {
+            await setupGardenNotificationsForUser(data.user.id).catch(() => {});
+          }
           navigation.replace("Pro", { isFirstStep: true });
         }
       }
@@ -132,8 +133,9 @@ export default function StartedScreen() {
           );
           setUser(data.user);
           setSession(data.session);
-          if (notifications)
-            setupGardenNotificationsForUser(data.user.id).catch(() => {});
+          if (notifications) {
+            await setupGardenNotificationsForUser(data.user.id).catch(() => {});
+          }
           navigation.replace("Pro", { isFirstStep: true });
         }
       }

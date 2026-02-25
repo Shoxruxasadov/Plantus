@@ -3,6 +3,10 @@ import { SchedulableTriggerInputTypes } from 'expo-notifications';
 import { Platform } from 'react-native';
 import { Plant, Reminder } from '../types';
 import { getGardenPlants } from './supabase';
+import { useAppStore } from '../store/appStore';
+import { languageToLocale } from '../i18n/locale';
+import type { Locale } from '../i18n/locale';
+import { t } from '../i18n/translations';
 
 // Configure notification handler
 Notifications.setNotificationHandler({
@@ -14,14 +18,23 @@ Notifications.setNotificationHandler({
 });
 
 export const requestNotificationPermissions = async () => {
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#1B5E20',
+    });
+  }
+
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
-  
+
   if (existingStatus !== 'granted') {
     const { status } = await Notifications.requestPermissionsAsync();
     finalStatus = status;
   }
-  
+
   return finalStatus === 'granted';
 };
 
@@ -90,23 +103,28 @@ export const getScheduledNotifications = async () => {
 // ---- Care plan notifications (per plant) ----
 const CARE_PLAN_KEYS = ['Watering', 'Fertilize', 'Repotting', 'Pruning', 'Humidity', 'Soilcheck'];
 
-const CARE_PLAN_TITLES: Record<string, string> = {
-  Watering: '💧 Time to water',
-  Fertilize: '🌱 Time to fertilize',
-  Repotting: '🪴 Time to repot',
-  Pruning: '✂️ Time to prune',
-  Humidity: '💨 Check humidity',
-  Soilcheck: '🌍 Soil check',
+const CARE_TITLE_KEYS: Record<string, string> = {
+  Watering: 'notifications.wateringTitle',
+  Fertilize: 'notifications.fertilizeTitle',
+  Repotting: 'notifications.repottingTitle',
+  Pruning: 'notifications.pruningTitle',
+  Humidity: 'notifications.humidityTitle',
+  Soilcheck: 'notifications.soilcheckTitle',
 };
 
-const CARE_PLAN_BODIES: Record<string, string> = {
-  Watering: 'Your plant needs some water.',
-  Fertilize: 'Give your plant some nutrients.',
-  Repotting: 'Check if your plant needs a new pot.',
-  Pruning: 'Time to prune your plant.',
-  Humidity: 'Check the humidity for your plant.',
-  Soilcheck: 'Check the soil for your plant.',
+const CARE_BODY_KEYS: Record<string, string> = {
+  Watering: 'notifications.wateringBody',
+  Fertilize: 'notifications.fertilizeBody',
+  Repotting: 'notifications.repottingBody',
+  Pruning: 'notifications.pruningBody',
+  Humidity: 'notifications.humidityBody',
+  Soilcheck: 'notifications.soilcheckBody',
 };
+
+function getNotificationLocale(): Locale {
+  const language = useAppStore.getState().language;
+  return languageToLocale(language);
+}
 
 function parseCareplan(cp: any): any {
   if (cp == null) return null;
@@ -225,15 +243,16 @@ function scheduleGroupedCareplanNotificationsForUser(userId: string): Promise<vo
       groups.get(k)!.push(s);
     }
 
+    const locale = getNotificationLocale();
     const now = new Date();
     for (const [, groupSlots] of groups) {
       if (groupSlots.length === 0) continue;
       const first = groupSlots[0];
       const triggerDate = computeTriggerDate(now, first.time, first.repeat, first.customRepeat);
-      const careTitle = CARE_PLAN_TITLES[first.careKey] || '🌿 Care reminder';
+      const careTitle = t(locale, CARE_TITLE_KEYS[first.careKey] ?? 'notifications.careReminder');
       const plantNames = groupSlots.map((s) => s.plantName).join(', ');
       const title = `${careTitle}: ${plantNames}`;
-      const body = (CARE_PLAN_BODIES[first.careKey] || 'Check on your plants.').replace(/\bplant\b/gi, 'plants');
+      const body = t(locale, CARE_BODY_KEYS[first.careKey] ?? 'notifications.checkPlants').replace(/\bplant\b/gi, 'plants');
       const plantIds = groupSlots.map((s) => s.plantId);
       try {
         await scheduleNotification(
@@ -264,6 +283,7 @@ export const scheduleCareplanNotificationsForPlant = async (
   if (!hasPerms) return { ok: false, error: 'Permission denied' };
   const cp = parseCareplan(careplan);
   if (!cp) return { ok: true };
+  const locale = getNotificationLocale();
   let hasError = false;
   for (const key of CARE_PLAN_KEYS) {
     const item = cp[key] || cp[key.charAt(0).toLowerCase() + key.slice(1)];
@@ -272,12 +292,13 @@ export const scheduleCareplanNotificationsForPlant = async (
     const rep = item.Repeat || item.repeat;
     if (!rep || rep === 'NotSet') continue;
     const cr = item.CustomRepeat || item.customRepeat;
-    const t = item.Time || item.time;
-    const time = parseCareTime(t);
+    const timeVal = item.Time || item.time;
+    const time = parseCareTime(timeVal);
     const now = new Date();
     const triggerDate = computeTriggerDate(now, time, rep, cr);
-    const title = `${CARE_PLAN_TITLES[key] || '🌿 Care reminder'} ${plantName}`;
-    const body = (CARE_PLAN_BODIES[key] || `Check on your ${plantName}`).replace(/\bplant\b/gi, plantName);
+    const careTitle = t(locale, CARE_TITLE_KEYS[key] ?? 'notifications.careReminder');
+    const title = `${careTitle} ${plantName}`;
+    const body = t(locale, CARE_BODY_KEYS[key] ?? 'notifications.checkPlants').replace(/\bplant\b/gi, plantName);
     try {
       const res = await scheduleNotification(
         title,
@@ -359,52 +380,67 @@ export const setupPlantReminder = async (
   });
 };
 
-// Helper to get reminder title
+// Helper to get reminder title (app language)
 const getReminderTitle = (
   type: 'watering' | 'fertilizing' | 'repotting',
   plantName: string
 ): string => {
-  switch (type) {
-    case 'watering':
-      return `💧 Time to water ${plantName}`;
-    case 'fertilizing':
-      return `🌱 Time to fertilize ${plantName}`;
-    case 'repotting':
-      return `🪴 Time to repot ${plantName}`;
-    default:
-      return `Plant care reminder for ${plantName}`;
-  }
+  const locale = getNotificationLocale();
+  const key =
+    type === 'watering'
+      ? 'notifications.timeToWater'
+      : type === 'fertilizing'
+        ? 'notifications.timeToFertilize'
+        : type === 'repotting'
+          ? 'notifications.timeToRepot'
+          : 'notifications.plantCareReminder';
+  return t(locale, key, { name: plantName });
 };
 
-// Helper to get reminder body
+// Helper to get reminder body (app language)
 const getReminderBody = (
   type: 'watering' | 'fertilizing' | 'repotting',
   plantName: string
 ): string => {
-  switch (type) {
-    case 'watering':
-      return `Your ${plantName} needs some water. Don't forget to check the soil moisture first!`;
-    case 'fertilizing':
-      return `It's time to give ${plantName} some nutrients. Use the recommended fertilizer.`;
-    case 'repotting':
-      return `Check if ${plantName} needs a new pot. Look for roots growing out of drainage holes.`;
-    default:
-      return `Check on your ${plantName}`;
-  }
+  const locale = getNotificationLocale();
+  const key =
+    type === 'watering'
+      ? 'notifications.wateringBodyReminder'
+      : type === 'fertilizing'
+        ? 'notifications.fertilizingBodyReminder'
+        : type === 'repotting'
+          ? 'notifications.repottingBodyReminder'
+          : 'notifications.checkPlant';
+  return t(locale, key, { name: plantName });
 };
+
+/** Parse time from reminder: Date, timestamp number, or "HH:mm:ss" string. */
+function parseReminderTime(t: any): Date {
+  if (t == null || t === '') return new Date(new Date().setHours(9, 0, 0, 0));
+  if (typeof t === 'object' && t instanceof Date && Number.isFinite(t.getTime())) return t;
+  if (typeof t === 'number' && Number.isFinite(t)) {
+    const d = new Date(t);
+    return Number.isFinite(d.getTime()) ? d : new Date(new Date().setHours(9, 0, 0, 0));
+  }
+  if (typeof t === 'string') {
+    const parts = t.trim().split(/[:.]/).map((p) => parseInt(p, 10));
+    const hours = Number.isFinite(parts[0]) ? Math.min(23, Math.max(0, parts[0])) : 9;
+    const minutes = Number.isFinite(parts[1]) ? Math.min(59, Math.max(0, parts[1])) : 0;
+    const d = new Date();
+    d.setHours(hours, minutes, 0, 0);
+    return d;
+  }
+  return new Date(new Date().setHours(9, 0, 0, 0));
+}
 
 // Calculate notification trigger based on reminder settings
 const calculateTrigger = (reminder: Reminder): Notifications.NotificationTriggerInput | null => {
   const now = new Date();
-  const reminderTime = new Date(reminder.time);
-  
-  // Set the time for today
+  const reminderTime = parseReminderTime(reminder.time);
+
   const nextTrigger = new Date(now);
-  nextTrigger.setHours(reminderTime.getHours());
-  nextTrigger.setMinutes(reminderTime.getMinutes());
-  nextTrigger.setSeconds(0);
-  
-  // If the time has passed today, schedule for next occurrence
+  nextTrigger.setHours(reminderTime.getHours(), reminderTime.getMinutes(), 0, 0);
+
   if (nextTrigger <= now) {
     switch (reminder.repeat) {
       case 'Everyday':
@@ -428,23 +464,34 @@ const calculateTrigger = (reminder: Reminder): Notifications.NotificationTrigger
       case 'Custom':
         if (reminder.customRepeat) {
           const { value, type } = reminder.customRepeat;
+          const v = value ?? 1;
           switch (type) {
             case 'day':
-              nextTrigger.setDate(nextTrigger.getDate() + value);
+              nextTrigger.setDate(nextTrigger.getDate() + v);
               break;
             case 'week':
-              nextTrigger.setDate(nextTrigger.getDate() + (value * 7));
+              nextTrigger.setDate(nextTrigger.getDate() + v * 7);
               break;
             case 'month':
-              nextTrigger.setMonth(nextTrigger.getMonth() + value);
+              nextTrigger.setMonth(nextTrigger.getMonth() + v);
               break;
+            default:
+              nextTrigger.setDate(nextTrigger.getDate() + 1);
           }
+        } else {
+          nextTrigger.setDate(nextTrigger.getDate() + 1);
         }
         break;
+      default:
+        nextTrigger.setDate(nextTrigger.getDate() + 1);
     }
   }
 
+  const minFuture = now.getTime() + 60 * 1000;
+  if (nextTrigger.getTime() < minFuture) nextTrigger.setTime(minFuture);
+
   return {
+    type: SchedulableTriggerInputTypes.DATE,
     date: nextTrigger,
   };
 };

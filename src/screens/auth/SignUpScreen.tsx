@@ -102,7 +102,9 @@ export default function SignUpScreen() {
           name: name.trim(),
           image: null,
         });
-        if (notifications) setupGardenNotificationsForUser(data.user.id).catch(() => {});
+        if (notifications) {
+          await setupGardenNotificationsForUser(data.user.id).catch(() => {});
+        }
         navigation.replace('Pro', { isFirstStep: true });
       } else if (data.user && !data.session) {
         navigation.navigate('Success', {
