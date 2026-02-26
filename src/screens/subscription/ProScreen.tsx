@@ -43,7 +43,7 @@ import {
 } from '../../services/revenueCat';
 
 const { width: SW } = Dimensions.get('window');
-const HERO_HEIGHT = 150;
+const HERO_HEIGHT = 180;
 
 const FEATURES = [
   { icon: Plant, labelKey: 'pro.feature1' as const },
@@ -374,12 +374,12 @@ export default function ProScreen() {
                 <View style={styles.planLeft}>
                   <Text style={[styles.planName, { color: theme.text }]}>{t('pro.yearly')}</Text>
                   <Text style={[styles.planDesc, { color: theme.textSecondary }]}>
-                    {yearlyPrice}{t('pro.perYear')}
+                    {yearlyPrice}{t('pro.perYear')} (${yearlyPerWeek}{t('pro.perWeek')}) 
                   </Text>
                 </View>
-                <View style={styles.planRight}>
+                {/* <View style={styles.planRight}>
                   <Text style={[styles.planPriceRight, { color: theme.text }]}>${yearlyPerWeek}{t('pro.perWeek')}</Text>
-                </View>
+                </View> */}
               </TouchableOpacity>
             </View>
 
@@ -401,16 +401,16 @@ export default function ProScreen() {
                   {t('pro.threeDayTrial')}
                 </Text>
               </View>
-              <View style={styles.planRight}>
+              {/* <View style={styles.planRight}>
                 <Text style={[styles.planPriceRight, { color: theme.text }]}>Free</Text>
-              </View>
+              </View> */}
             </TouchableOpacity>
           </View>
           )}
         </View>
 
         {/* Disclaimer: Access for price (yearly) or No payments due (weekly) */}
-        <View style={styles.ctaDisclaimerWrap}>
+        {/* <View style={styles.ctaDisclaimerWrap}>
           {isYearlySelected ? (
             <Text style={[styles.ctaDisclaimerText, { color: theme.text }]}>
               {t('pro.accessForYear', { price: yearlyPrice })}
@@ -423,7 +423,7 @@ export default function ProScreen() {
               <Text style={[styles.ctaDisclaimerText, { color: theme.text }]}>{t('pro.noPaymentsDueNow')}</Text>
             </View>
           )}
-        </View>
+        </View> */}
 
         {/* CTA — pill shape, gradient (theme green) */}
         <TouchableOpacity
@@ -442,7 +442,7 @@ export default function ProScreen() {
               <ActivityIndicator color={theme.textLight} />
             ) : (
               <Text style={[styles.ctaBtnText, { color: theme.textLight }]}>
-                {selectedPlanKey === 'weekly' ? t('pro.startTrial') : t('pro.subscription')}
+                {t('pro.subscription')}
               </Text>
             )}
           </LinearGradient>
@@ -767,6 +767,8 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     color: '#fff',
+    textTransform: 'uppercase',
+    paddingHorizontal: 8,
   },
   footerLinks: {
     flexDirection: 'row',
