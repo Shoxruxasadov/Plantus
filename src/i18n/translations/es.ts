@@ -367,6 +367,7 @@ export const es: Record<string, string> = {
   'pro.info': 'Info',
   'pro.noPurchases': 'No se encontraron compras anteriores',
   'pro.restoreFailed': 'Error al restaurar compras',
+  'pro.noPackageAvailable': 'No hay paquete disponible para comprar',
   'pro.bannerJoined': '647 amantes de las plantas se unieron hoy',
   'pro.save88': 'AHORRA 88 %',
   'pro.perYear': '/año',

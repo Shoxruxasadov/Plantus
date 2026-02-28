@@ -367,6 +367,7 @@ export const pt: Record<string, string> = {
   'pro.info': 'Info',
   'pro.noPurchases': 'Nenhuma compra anterior encontrada',
   'pro.restoreFailed': 'Falha ao restaurar compras',
+  'pro.noPackageAvailable': 'Nenhum pacote disponível para compra',
   'pro.bannerJoined': '647 amantes de plantas se juntaram hoje',
   'pro.save88': 'ECONOMIZE 88%',
   'pro.perYear': '/ano',

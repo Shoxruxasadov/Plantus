@@ -389,6 +389,7 @@ export const de: Record<string, string> = {
   'pro.info': 'Info',
   'pro.noPurchases': 'Keine früheren Käufe gefunden',
   'pro.restoreFailed': 'Käufe konnten nicht wiederhergestellt werden',
+  'pro.noPackageAvailable': 'Kein Paket zum Kauf verfügbar',
   'pro.bannerJoined': '647 Pflanzenfreunde sind heute dabei',
   'pro.save88': '88 % SPAREN',
   'pro.perYear': '/Jahr',

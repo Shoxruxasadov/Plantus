@@ -367,6 +367,7 @@ export const ko: Record<string, string> = {
   'pro.info': '정보',
   'pro.noPurchases': '이전 구매를 찾을 수 없어요',
   'pro.restoreFailed': '구매 복원에 실패했어요',
+  'pro.noPackageAvailable': '구매 가능한 패키지가 없습니다',
   'pro.bannerJoined': '647명의 식물 애호가가 오늘 가입했어요',
   'pro.save88': '88% 절약',
   'pro.perYear': '/년',

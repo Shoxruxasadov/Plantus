@@ -101,13 +101,18 @@ export default function ProScreen() {
   }, [closeProgress]);
 
   const loadOfferings = async () => {
+    console.log('[Pro] loadOfferings: start');
     try {
       const result = await getOfferings();
+      console.log('[Pro] getOfferings result:', { success: result.success, hasData: !!result.data });
       if (result.success && result.data) {
         let allPkgs: PurchasesPackage[] = [];
         const { current, all } = result.data;
+        console.log('[Pro] current offering:', current ? { packageCount: current.availablePackages?.length ?? 0 } : null);
+        console.log('[Pro] all offerings keys:', all ? Object.keys(all) : []);
         if (current?.availablePackages?.length) {
           allPkgs = [...current.availablePackages];
+          console.log('[Pro] from current:', current.availablePackages.map((p: PurchasesPackage) => ({ id: p.identifier, type: p.packageType })));
         }
         if (all) {
           Object.values(all).forEach((offering: any) => {
@@ -118,47 +123,89 @@ export default function ProScreen() {
             }
           });
         }
+        console.log('[Pro] allPkgs length:', allPkgs.length);
+        allPkgs.forEach((p, i) => {
+          console.log(`[Pro] package[${i}]:`, { identifier: p.identifier, packageType: p.packageType, price: (p as any).product?.priceString });
+        });
         allPkgs.sort((a, b) => {
           const order: Record<string, number> = { ANNUAL: 0, YEARLY: 0, WEEKLY: 1, MONTHLY: 2 };
           return (order[a.packageType] ?? 3) - (order[b.packageType] ?? 3);
         });
         setPackages(allPkgs);
+        console.log('[Pro] loadOfferings: setPackages done, length=', allPkgs.length);
+      } else {
+        console.log('[Pro] loadOfferings: no data or not success, packages will stay empty');
       }
     } catch (e) {
-      console.error('Load offerings error:', e);
+      console.error('[Pro] Load offerings error:', e);
     } finally {
       setLoading(false);
+      console.log('[Pro] loadOfferings: finished, loading=false');
     }
   };
 
   const handlePurchase = async () => {
-    if (!selectedPackage) {
+    const weeklyPkg = packages.find(
+      (p) =>
+        p.packageType === 'WEEKLY' ||
+        p.identifier === '$rc_weekly' ||
+        (p as any).identifier?.includes('weekly') ||
+        (p as any).identifier?.includes('weakly')
+    );
+    const yearlyPkg = packages.find(
+      (p) =>
+        p.packageType === 'ANNUAL' ||
+        p.identifier === '$rc_annual' ||
+        p.identifier === 'yearly' ||
+        (p as any).identifier?.includes('yearly')
+    );
+    const selectedPkg = selectedPlanKey === 'yearly' ? (yearlyPkg ?? null) : (weeklyPkg ?? null);
+
+    console.log('[Pro] Continue pressed');
+    console.log('[Pro] packages.length:', packages.length);
+    console.log('[Pro] selectedPlanKey:', selectedPlanKey);
+    console.log('[Pro] weeklyPkg:', weeklyPkg ? { identifier: weeklyPkg.identifier, packageType: weeklyPkg.packageType } : null);
+    console.log('[Pro] yearlyPkg:', yearlyPkg ? { identifier: yearlyPkg.identifier, packageType: yearlyPkg.packageType } : null);
+    console.log('[Pro] selectedPackage:', selectedPkg ? { identifier: selectedPkg.identifier, packageType: selectedPkg.packageType } : null);
+
+    if (packages.length === 0) {
+      console.log('[Pro] Abort: packages.length === 0, showing noPackageAvailable dialog');
+      Alert.alert(t('common.error'), t('pro.noPackageAvailable'), [{ text: t('common.ok') }]);
+      return;
+    }
+    if (!selectedPkg) {
+      console.log('[Pro] Abort: no selectedPackage for planKey', selectedPlanKey);
       Alert.alert(t('pro.selectPlan'), t('pro.selectPlanMessage'));
       return;
     }
+    console.log('[Pro] Calling purchasePackage:', selectedPkg.identifier);
     setPurchasing(true);
     try {
-      const result = await purchasePackage(selectedPackage);
+      const result = await purchasePackage(selectedPkg);
+      console.log('[Pro] purchasePackage result:', { success: result.success, cancelled: result.cancelled, error: result.error });
       if (result.success) {
         const statusResult = await checkPremiumStatus();
+        console.log('[Pro] checkPremiumStatus:', statusResult.isPro);
         setIsPro(statusResult.isPro);
         Alert.alert(t('common.success'), t('pro.thankYou'), [
           { text: t('common.ok'), onPress: () => navigation.goBack() },
         ]);
       } else if (result.cancelled) {
-        // User closed the sheet – no alert
+        console.log('[Pro] Purchase cancelled by user');
       } else {
         const msg = result.error instanceof Error ? result.error.message : (result.error ? String(result.error) : 'Please check your connection and try again.');
+        console.log('[Pro] Purchase failed:', msg);
         Alert.alert(t('pro.purchaseFailed'), msg);
       }
     } catch (e) {
-      console.error('Purchase error:', e);
+      console.error('[Pro] Purchase error:', e);
       Alert.alert(
         t('common.error'),
         t('pro.unavailable')
       );
     } finally {
       setPurchasing(false);
+      console.log('[Pro] handlePurchase finished');
     }
   };
 
@@ -429,7 +476,7 @@ export default function ProScreen() {
         <TouchableOpacity
           style={[styles.ctaBtnWrap, purchasing && { opacity: 0.7 }]}
           onPress={handlePurchase}
-          disabled={purchasing || !selectedPackage}
+          disabled={purchasing}
           activeOpacity={0.85}
         >
           <LinearGradient

@@ -367,6 +367,7 @@ export const th: Record<string, string> = {
   'pro.info': 'ข้อมูล',
   'pro.noPurchases': 'ไม่พบการซื้อก่อนหน้า',
   'pro.restoreFailed': 'กู้คืนการซื้อไม่สำเร็จ',
+  'pro.noPackageAvailable': 'ไม่มีแพ็กเกจให้ซื้อ',
   'pro.bannerJoined': '647 คนรักต้นไม้เข้าร่วมวันนี้',
   'pro.save88': 'ประหยัด 88%',
   'pro.perYear': '/ปี',

@@ -510,6 +510,7 @@ export const en: Record<string, string> = {
   'pro.info': 'Info',
   'pro.noPurchases': 'No previous purchases found',
   'pro.restoreFailed': 'Failed to restore purchases',
+  'pro.noPackageAvailable': 'No package available for purchase',
   'pro.bannerJoined': '647 plant lovers joined today',
   'pro.save88': 'SAVE 88%',
   'pro.perYear': '/year',

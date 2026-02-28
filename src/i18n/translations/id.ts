@@ -367,6 +367,7 @@ export const id: Record<string, string> = {
   'pro.info': 'Info',
   'pro.noPurchases': 'Tidak ada pembelian sebelumnya',
   'pro.restoreFailed': 'Gagal memulihkan pembelian',
+  'pro.noPackageAvailable': 'Tidak ada paket tersedia untuk dibeli',
   'pro.bannerJoined': '647 pecinta tanaman bergabung hari ini',
   'pro.save88': 'HEMAT 88%',
   'pro.perYear': '/tahun',

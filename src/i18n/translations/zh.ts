@@ -367,6 +367,7 @@ export const zh: Record<string, string> = {
   'pro.info': '说明',
   'pro.noPurchases': '未找到以往购买记录',
   'pro.restoreFailed': '恢复购买失败',
+  'pro.noPackageAvailable': '没有可购买的套餐',
   'pro.bannerJoined': '647位爱花人士今日加入',
   'pro.save88': '省 88%',
   'pro.perYear': '/年',

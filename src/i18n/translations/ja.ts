@@ -367,6 +367,7 @@ export const ja: Record<string, string> = {
   'pro.info': '情報',
   'pro.noPurchases': '以前の購入が見つかりません',
   'pro.restoreFailed': '購入の復元に失敗しました',
+  'pro.noPackageAvailable': '購入可能なプランがありません',
   'pro.bannerJoined': '647人の植物好きが今日参加しました',
   'pro.save88': '88%お得',
   'pro.perYear': '/年',
