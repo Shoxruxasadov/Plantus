@@ -104,11 +104,15 @@ export default function ProScreen() {
     console.log('[Pro] loadOfferings: start');
     try {
       const result = await getOfferings();
-      console.log('[Pro] getOfferings result:', { success: result.success, hasData: !!result.data });
+      console.log('[Pro] getOfferings result:', { success: result.success, hasData: !!result.data, error: result.error });
       if (result.success && result.data) {
         let allPkgs: PurchasesPackage[] = [];
         const { current, all } = result.data;
-        console.log('[Pro] current offering:', current ? { packageCount: current.availablePackages?.length ?? 0 } : null);
+        const currentPackageCount = current?.availablePackages?.length ?? 0;
+        console.log('[Pro] current offering:', current ? { identifier: current.identifier, packageCount: currentPackageCount } : 'null');
+        if (current && currentPackageCount === 0) {
+          console.warn('[Pro] RevenueCat current.availablePackages bo\'sh. Simulator bo\'lsa: real qurilma + Sandbox account yoki Xcode da StoreKit Configuration yoqing.');
+        }
         console.log('[Pro] all offerings keys:', all ? Object.keys(all) : []);
         if (current?.availablePackages?.length) {
           allPkgs = [...current.availablePackages];
@@ -287,6 +291,8 @@ export default function ProScreen() {
       p.identifier === 'yearly' ||
       (p as any).identifier?.includes('yearly')
   );
+
+  console.log('[Pro] packages:', packages);
 
   const selectedPackage = selectedPlanKey === 'yearly' ? (yearlyPkg ?? null) : (weeklyPkg ?? null);
 

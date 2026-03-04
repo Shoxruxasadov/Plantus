@@ -351,8 +351,8 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={[
               styles.proCard,
-              styles.manageProCard,
-              { backgroundColor: darkMode ? theme.card : '#ffffff' },
+              // styles.manageProCard,
+              // { backgroundColor: darkMode ? theme.card : '#ffffff' },
             ]}
             onPress={handleManageSubscription}
             activeOpacity={0.9}
@@ -361,19 +361,25 @@ export default function ProfileScreen() {
               colors={['#1FC85C', '#00AFFE']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={[styles.proGradient, styles.manageProGradient]}
+              style={styles.proGradient}
             >
+                 <ImageBackground
+              source={require('../../../assets/images/Profile.PRO.png')}
+              style={styles.proImageBg}
+              imageStyle={styles.proImageStyle}
+              >
               <View style={styles.proContent}>
-                <Sparkle size={24} color={COLORS.textLight} weight="fill" style={styles.proStar} />
-                <View style={{ flex: 1 }}>
+                <Sparkle size={28} color={COLORS.textLight} weight="fill" style={styles.proStar} />
+                <View>
                   <Text style={styles.proTitle}>{t('profile.plantusPro')}</Text>
-                  <Text style={[styles.proSubtitle, { opacity: 0.9 }]}>
+                  <Text style={styles.proSubtitle}>
                     {t('profile.manageSubscription')}
                   </Text>
                 </View>
-                <CaretRight size={20} color={COLORS.textLight} weight="bold"/>
               </View>
-            </LinearGradient>
+
+              </ImageBackground>
+                          </LinearGradient>
           </TouchableOpacity>
         )}
 

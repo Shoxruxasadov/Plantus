@@ -23,10 +23,6 @@ const REVENUECAT_API_KEY =
 /** Entitlement ID for Plantus Pro - must match RevenueCat dashboard */
 export const ENTITLEMENT_ID = 'Plantus Pro';
 
-/** Product package types (configure in RevenueCat: Monthly, Yearly, Lifetime) */
-export const PACKAGE_MONTHLY = 'MONTHLY';
-export const PACKAGE_ANNUAL = 'ANNUAL';
-export const PACKAGE_LIFETIME = 'LIFETIME';
 
 let customerInfoListenerRemove: (() => void) | null = null;
 
@@ -91,6 +87,10 @@ export const getOfferings = async (): Promise<{
     const offerings = await Purchases.getOfferings();
     return { success: true, data: { current: offerings.current, all: offerings.all } };
   } catch (error) {
+    console.warn(
+      '[RevenueCat] getOfferings failed. Check: 1) App Store Connect IAP product IDs match RevenueCat dashboard. 2) IAP status "Ready to Submit". 3) Paid Apps agreement signed. 4) Bundle ID match. Error:',
+      error
+    );
     return { success: false, error };
   }
 };
