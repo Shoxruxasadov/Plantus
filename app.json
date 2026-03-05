@@ -39,7 +39,8 @@
           "th",
           "id"
         ]
-      }
+      },
+      "appleTeamId": "2J688D34T8"
     },
     "android": {
       "icon": "./assets/images/app_launcher_icon.png",
