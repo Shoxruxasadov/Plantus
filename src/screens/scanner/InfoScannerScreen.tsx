@@ -25,7 +25,7 @@ const badImages = [
   require('../../../assets/images/plant_tip3.png'),
   require('../../../assets/images/plant_tip4.png'),
 ];
-const BAD_LABEL_KEYS = ['infoScanner.badMulti', 'infoScanner.badClose', 'infoScanner.badFar'] as const;
+const BAD_LABEL_KEYS = ['infoScanner.badClose', 'infoScanner.badFar', 'infoScanner.badMulti'] as const;
 
 export default function InfoScannerScreen() {
   const navigation = useNavigation();
