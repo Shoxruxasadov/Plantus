@@ -4,7 +4,7 @@
     "slug": "plantus",
     "version": "2.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo.png",
+    "icon": "./assets/logo.png",
     "scheme": "plantus",
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#121212",
@@ -20,7 +20,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.webnum.plantus",
-      "buildNumber": "57",
+      "buildNumber": "58",
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "We need camera access to identify and diagnose your plants",
@@ -43,7 +43,7 @@
       "appleTeamId": "2J688D34T8"
     },
     "android": {
-      "icon": "./assets/images/logo.png",
+      "icon": "./assets/logo.png",
       "package": "com.webnum.plantus",
       "permissions": [
         "android.permission.CAMERA",
@@ -55,7 +55,7 @@
     },
     "web": {
       "bundler": "metro",
-      "favicon": "./assets/images/logo.png"
+      "favicon": "./assets/logo.png"
     },
     "plugins": [
       "expo-font",
@@ -72,7 +72,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/logo.png",
+          "icon": "./assets/logo.png",
           "color": "#121212"
         }
       ]
