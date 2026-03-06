@@ -22,8 +22,9 @@ import { getOfferings, purchasePackage, checkPremiumStatus } from '../../service
 import { useAppStore } from '../../store/appStore';
 import type { PurchasesPackage } from 'react-native-purchases';
 
-/** RevenueCat package identifier for annual discount (Yearly Discount) */
+/** RevenueCat package identifiers for annual discount (Yearly / Plantus Annual Discount $19.99) */
 const RC_ANNUAL_DISCOUNT_ID = 'rc_annual_discount';
+const RC_YEARLY_ID = '$rc_yearly'; // RevenueCat "Yearly" = Plantus Annual Discount
 
 type RouteProps = RouteProp<RootStackParamList, 'OneTimeOffer'>;
 
@@ -81,6 +82,7 @@ export default function OneTimeOfferScreen() {
     return (
       packages.find(
         (p) =>
+          p.identifier === RC_YEARLY_ID ||
           p.identifier === RC_ANNUAL_DISCOUNT_ID ||
           p.identifier === `$${RC_ANNUAL_DISCOUNT_ID}` ||
           (p.identifier?.includes && p.identifier.includes('annual_discount'))

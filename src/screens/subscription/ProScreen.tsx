@@ -156,10 +156,11 @@ export default function ProScreen() {
         (p as any).identifier?.includes('weekly') ||
         (p as any).identifier?.includes('weakly')
     );
+    // Pro page yearly = Annual ($rc_annual) $29.99 — not $rc_yearly (that is discount $19.99 for one-time offer)
     const yearlyPkg = packages.find(
       (p) =>
-        p.packageType === 'ANNUAL' ||
         p.identifier === '$rc_annual' ||
+        p.packageType === 'ANNUAL' ||
         p.identifier === 'yearly' ||
         (p as any).identifier?.includes('yearly')
     );
@@ -173,8 +174,7 @@ export default function ProScreen() {
     console.log('[Pro] selectedPackage:', selectedPkg ? { identifier: selectedPkg.identifier, packageType: selectedPkg.packageType } : null);
 
     if (packages.length === 0) {
-      console.log('[Pro] Abort: packages.length === 0, showing noPackageAvailable dialog');
-      Alert.alert(t('common.error'), t('pro.noPackageAvailable'), [{ text: t('common.ok') }]);
+      console.log('[Pro] Abort: packages.length === 0 (no dialog)');
       return;
     }
     if (!selectedPkg) {
@@ -276,7 +276,7 @@ export default function ProScreen() {
     );
   }
 
-  // Production: subscription_weakly (Weekly), subscription_yearly (Yearly) — RevenueCat $rc_weekly, $rc_annual
+  // Pro page: Weekly = $rc_weekly $4.99, Yearly = Annual $rc_annual $29.99 ($rc_yearly is discount $19.99 for one-time offer only)
   const weeklyPkg = packages.find(
     (p) =>
       p.packageType === 'WEEKLY' ||
@@ -286,8 +286,8 @@ export default function ProScreen() {
   );
   const yearlyPkg = packages.find(
     (p) =>
-      p.packageType === 'ANNUAL' ||
       p.identifier === '$rc_annual' ||
+      p.packageType === 'ANNUAL' ||
       p.identifier === 'yearly' ||
       (p as any).identifier?.includes('yearly')
   );
